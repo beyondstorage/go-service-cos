@@ -1,6 +1,4 @@
 /*
-Package example provided support for local file system.
+Package cos provided support for Tencent Cloud's Cloud Object Storage (https://intl.cloud.tencent.com/product/cos)
 */
-package example
-
-//go:generate definitions service.hcl
+package cos
