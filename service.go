@@ -2,9 +2,9 @@ package cos
 
 import (
 	"context"
-	typ "github.com/aos-dev/go-storage/v3/types"
 
 	ps "github.com/aos-dev/go-storage/v3/pairs"
+	typ "github.com/aos-dev/go-storage/v3/types"
 )
 
 func (s *Service) create(ctx context.Context, name string, opt *pairServiceCreate) (store typ.Storager, err error) {

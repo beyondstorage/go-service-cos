@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aos-dev/go-storage/v3/pkg/httpclient"
 	"github.com/tencentyun/cos-go-sdk-v5"
 
 	ps "github.com/aos-dev/go-storage/v3/pairs"
 	"github.com/aos-dev/go-storage/v3/pkg/credential"
+	"github.com/aos-dev/go-storage/v3/pkg/httpclient"
 	"github.com/aos-dev/go-storage/v3/services"
 	typ "github.com/aos-dev/go-storage/v3/types"
 )
