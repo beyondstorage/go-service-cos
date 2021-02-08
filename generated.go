@@ -41,288 +41,6 @@ func WithStorageClass(v string) Pair {
 	}
 }
 
-// pairServiceNew is the parsed struct
-type pairServiceNew struct {
-	pairs []Pair
-
-	// Required pairs
-	HasCredential bool
-	Credential    string
-	// Optional pairs
-	HasEndpoint          bool
-	Endpoint             string
-	HasHTTPClientOptions bool
-	HTTPClientOptions    *httpclient.Options
-	HasPairPolicy        bool
-	PairPolicy           PairPolicy
-	// Generated pairs
-}
-
-// parsePairServiceNew will parse Pair slice into *pairServiceNew
-func parsePairServiceNew(opts []Pair) (*pairServiceNew, error) {
-	result := &pairServiceNew{
-		pairs: opts,
-	}
-
-	for _, v := range opts {
-		switch v.Key {
-		// Required pairs
-		case "credential":
-			result.HasCredential = true
-			result.Credential = v.Value.(string)
-		// Optional pairs
-		case "endpoint":
-			result.HasEndpoint = true
-			result.Endpoint = v.Value.(string)
-		case "http_client_options":
-			result.HasHTTPClientOptions = true
-			result.HTTPClientOptions = v.Value.(*httpclient.Options)
-		case "pair_policy":
-			result.HasPairPolicy = true
-			result.PairPolicy = v.Value.(PairPolicy)
-			// Generated pairs
-		}
-	}
-	if !result.HasCredential {
-		return nil, services.NewPairRequiredError("credential")
-	}
-
-	return result, nil
-}
-
-// pairServiceCreate is the parsed struct
-type pairServiceCreate struct {
-	pairs []Pair
-
-	// Required pairs
-	HasLocation bool
-	Location    string
-	// Optional pairs
-	// Generated pairs
-}
-
-// parsePairServiceCreate will parse Pair slice into *pairServiceCreate
-func (s *Service) parsePairServiceCreate(opts []Pair) (*pairServiceCreate, error) {
-	result := &pairServiceCreate{
-		pairs: opts,
-	}
-
-	for _, v := range opts {
-		switch v.Key {
-		// Required pairs
-		case "location":
-			result.HasLocation = true
-			result.Location = v.Value.(string)
-		// Optional pairs
-		// Generated pairs
-		default:
-
-			continue
-
-		}
-	}
-	if !result.HasLocation {
-		return nil, services.NewPairRequiredError("location")
-	}
-
-	return result, nil
-}
-
-// pairServiceDelete is the parsed struct
-type pairServiceDelete struct {
-	pairs []Pair
-
-	// Required pairs
-	HasLocation bool
-	Location    string
-	// Optional pairs
-	// Generated pairs
-}
-
-// parsePairServiceDelete will parse Pair slice into *pairServiceDelete
-func (s *Service) parsePairServiceDelete(opts []Pair) (*pairServiceDelete, error) {
-	result := &pairServiceDelete{
-		pairs: opts,
-	}
-
-	for _, v := range opts {
-		switch v.Key {
-		// Required pairs
-		case "location":
-			result.HasLocation = true
-			result.Location = v.Value.(string)
-		// Optional pairs
-		// Generated pairs
-		default:
-
-			continue
-
-		}
-	}
-	if !result.HasLocation {
-		return nil, services.NewPairRequiredError("location")
-	}
-
-	return result, nil
-}
-
-// pairServiceGet is the parsed struct
-type pairServiceGet struct {
-	pairs []Pair
-
-	// Required pairs
-	HasLocation bool
-	Location    string
-	// Optional pairs
-	// Generated pairs
-}
-
-// parsePairServiceGet will parse Pair slice into *pairServiceGet
-func (s *Service) parsePairServiceGet(opts []Pair) (*pairServiceGet, error) {
-	result := &pairServiceGet{
-		pairs: opts,
-	}
-
-	for _, v := range opts {
-		switch v.Key {
-		// Required pairs
-		case "location":
-			result.HasLocation = true
-			result.Location = v.Value.(string)
-		// Optional pairs
-		// Generated pairs
-		default:
-
-			continue
-
-		}
-	}
-	if !result.HasLocation {
-		return nil, services.NewPairRequiredError("location")
-	}
-
-	return result, nil
-}
-
-// pairServiceList is the parsed struct
-type pairServiceList struct {
-	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
-	// Generated pairs
-}
-
-// parsePairServiceList will parse Pair slice into *pairServiceList
-func (s *Service) parsePairServiceList(opts []Pair) (*pairServiceList, error) {
-	result := &pairServiceList{
-		pairs: opts,
-	}
-
-	for _, v := range opts {
-		switch v.Key {
-		// Required pairs
-		// Optional pairs
-		// Generated pairs
-		default:
-
-			continue
-
-		}
-	}
-
-	return result, nil
-}
-
-// Create will create a new storager instance.
-//
-// This function will create a context by default.
-func (s *Service) Create(name string, pairs ...Pair) (store Storager, err error) {
-	ctx := context.Background()
-	return s.CreateWithContext(ctx, name, pairs...)
-}
-
-// CreateWithContext will create a new storager instance.
-func (s *Service) CreateWithContext(ctx context.Context, name string, pairs ...Pair) (store Storager, err error) {
-	defer func() {
-		err = s.formatError("create", err, name)
-	}()
-	var opt *pairServiceCreate
-	opt, err = s.parsePairServiceCreate(pairs)
-	if err != nil {
-		return
-	}
-
-	return s.create(ctx, name, opt)
-}
-
-// Delete will delete a storager instance.
-//
-// This function will create a context by default.
-func (s *Service) Delete(name string, pairs ...Pair) (err error) {
-	ctx := context.Background()
-	return s.DeleteWithContext(ctx, name, pairs...)
-}
-
-// DeleteWithContext will delete a storager instance.
-func (s *Service) DeleteWithContext(ctx context.Context, name string, pairs ...Pair) (err error) {
-	defer func() {
-		err = s.formatError("delete", err, name)
-	}()
-	var opt *pairServiceDelete
-	opt, err = s.parsePairServiceDelete(pairs)
-	if err != nil {
-		return
-	}
-
-	return s.delete(ctx, name, opt)
-}
-
-// Get will get a valid storager instance for service.
-//
-// This function will create a context by default.
-func (s *Service) Get(name string, pairs ...Pair) (store Storager, err error) {
-	ctx := context.Background()
-	return s.GetWithContext(ctx, name, pairs...)
-}
-
-// GetWithContext will get a valid storager instance for service.
-func (s *Service) GetWithContext(ctx context.Context, name string, pairs ...Pair) (store Storager, err error) {
-	defer func() {
-		err = s.formatError("get", err, name)
-	}()
-	var opt *pairServiceGet
-	opt, err = s.parsePairServiceGet(pairs)
-	if err != nil {
-		return
-	}
-
-	return s.get(ctx, name, opt)
-}
-
-// List will list all storager instances under this service.
-//
-// This function will create a context by default.
-func (s *Service) List(pairs ...Pair) (sti *StoragerIterator, err error) {
-	ctx := context.Background()
-	return s.ListWithContext(ctx, pairs...)
-}
-
-// ListWithContext will list all storager instances under this service.
-func (s *Service) ListWithContext(ctx context.Context, pairs ...Pair) (sti *StoragerIterator, err error) {
-	defer func() {
-
-		err = s.formatError("list", err, "")
-	}()
-	var opt *pairServiceList
-	opt, err = s.parsePairServiceList(pairs)
-	if err != nil {
-		return
-	}
-
-	return s.list(ctx, opt)
-}
-
 // pairStorageNew is the parsed struct
 type pairStorageNew struct {
 	pairs []Pair
@@ -732,4 +450,286 @@ func (s *Storage) WriteWithContext(ctx context.Context, path string, r io.Reader
 	}
 
 	return s.write(ctx, path, r, size, opt)
+}
+
+// pairServiceNew is the parsed struct
+type pairServiceNew struct {
+	pairs []Pair
+
+	// Required pairs
+	HasCredential bool
+	Credential    string
+	// Optional pairs
+	HasEndpoint          bool
+	Endpoint             string
+	HasHTTPClientOptions bool
+	HTTPClientOptions    *httpclient.Options
+	HasPairPolicy        bool
+	PairPolicy           PairPolicy
+	// Generated pairs
+}
+
+// parsePairServiceNew will parse Pair slice into *pairServiceNew
+func parsePairServiceNew(opts []Pair) (*pairServiceNew, error) {
+	result := &pairServiceNew{
+		pairs: opts,
+	}
+
+	for _, v := range opts {
+		switch v.Key {
+		// Required pairs
+		case "credential":
+			result.HasCredential = true
+			result.Credential = v.Value.(string)
+		// Optional pairs
+		case "endpoint":
+			result.HasEndpoint = true
+			result.Endpoint = v.Value.(string)
+		case "http_client_options":
+			result.HasHTTPClientOptions = true
+			result.HTTPClientOptions = v.Value.(*httpclient.Options)
+		case "pair_policy":
+			result.HasPairPolicy = true
+			result.PairPolicy = v.Value.(PairPolicy)
+			// Generated pairs
+		}
+	}
+	if !result.HasCredential {
+		return nil, services.NewPairRequiredError("credential")
+	}
+
+	return result, nil
+}
+
+// pairServiceCreate is the parsed struct
+type pairServiceCreate struct {
+	pairs []Pair
+
+	// Required pairs
+	HasLocation bool
+	Location    string
+	// Optional pairs
+	// Generated pairs
+}
+
+// parsePairServiceCreate will parse Pair slice into *pairServiceCreate
+func (s *Service) parsePairServiceCreate(opts []Pair) (*pairServiceCreate, error) {
+	result := &pairServiceCreate{
+		pairs: opts,
+	}
+
+	for _, v := range opts {
+		switch v.Key {
+		// Required pairs
+		case "location":
+			result.HasLocation = true
+			result.Location = v.Value.(string)
+		// Optional pairs
+		// Generated pairs
+		default:
+
+			continue
+
+		}
+	}
+	if !result.HasLocation {
+		return nil, services.NewPairRequiredError("location")
+	}
+
+	return result, nil
+}
+
+// pairServiceDelete is the parsed struct
+type pairServiceDelete struct {
+	pairs []Pair
+
+	// Required pairs
+	HasLocation bool
+	Location    string
+	// Optional pairs
+	// Generated pairs
+}
+
+// parsePairServiceDelete will parse Pair slice into *pairServiceDelete
+func (s *Service) parsePairServiceDelete(opts []Pair) (*pairServiceDelete, error) {
+	result := &pairServiceDelete{
+		pairs: opts,
+	}
+
+	for _, v := range opts {
+		switch v.Key {
+		// Required pairs
+		case "location":
+			result.HasLocation = true
+			result.Location = v.Value.(string)
+		// Optional pairs
+		// Generated pairs
+		default:
+
+			continue
+
+		}
+	}
+	if !result.HasLocation {
+		return nil, services.NewPairRequiredError("location")
+	}
+
+	return result, nil
+}
+
+// pairServiceGet is the parsed struct
+type pairServiceGet struct {
+	pairs []Pair
+
+	// Required pairs
+	HasLocation bool
+	Location    string
+	// Optional pairs
+	// Generated pairs
+}
+
+// parsePairServiceGet will parse Pair slice into *pairServiceGet
+func (s *Service) parsePairServiceGet(opts []Pair) (*pairServiceGet, error) {
+	result := &pairServiceGet{
+		pairs: opts,
+	}
+
+	for _, v := range opts {
+		switch v.Key {
+		// Required pairs
+		case "location":
+			result.HasLocation = true
+			result.Location = v.Value.(string)
+		// Optional pairs
+		// Generated pairs
+		default:
+
+			continue
+
+		}
+	}
+	if !result.HasLocation {
+		return nil, services.NewPairRequiredError("location")
+	}
+
+	return result, nil
+}
+
+// pairServiceList is the parsed struct
+type pairServiceList struct {
+	pairs []Pair
+
+	// Required pairs
+	// Optional pairs
+	// Generated pairs
+}
+
+// parsePairServiceList will parse Pair slice into *pairServiceList
+func (s *Service) parsePairServiceList(opts []Pair) (*pairServiceList, error) {
+	result := &pairServiceList{
+		pairs: opts,
+	}
+
+	for _, v := range opts {
+		switch v.Key {
+		// Required pairs
+		// Optional pairs
+		// Generated pairs
+		default:
+
+			continue
+
+		}
+	}
+
+	return result, nil
+}
+
+// Create will create a new storager instance.
+//
+// This function will create a context by default.
+func (s *Service) Create(name string, pairs ...Pair) (store Storager, err error) {
+	ctx := context.Background()
+	return s.CreateWithContext(ctx, name, pairs...)
+}
+
+// CreateWithContext will create a new storager instance.
+func (s *Service) CreateWithContext(ctx context.Context, name string, pairs ...Pair) (store Storager, err error) {
+	defer func() {
+		err = s.formatError("create", err, name)
+	}()
+	var opt *pairServiceCreate
+	opt, err = s.parsePairServiceCreate(pairs)
+	if err != nil {
+		return
+	}
+
+	return s.create(ctx, name, opt)
+}
+
+// Delete will delete a storager instance.
+//
+// This function will create a context by default.
+func (s *Service) Delete(name string, pairs ...Pair) (err error) {
+	ctx := context.Background()
+	return s.DeleteWithContext(ctx, name, pairs...)
+}
+
+// DeleteWithContext will delete a storager instance.
+func (s *Service) DeleteWithContext(ctx context.Context, name string, pairs ...Pair) (err error) {
+	defer func() {
+		err = s.formatError("delete", err, name)
+	}()
+	var opt *pairServiceDelete
+	opt, err = s.parsePairServiceDelete(pairs)
+	if err != nil {
+		return
+	}
+
+	return s.delete(ctx, name, opt)
+}
+
+// Get will get a valid storager instance for service.
+//
+// This function will create a context by default.
+func (s *Service) Get(name string, pairs ...Pair) (store Storager, err error) {
+	ctx := context.Background()
+	return s.GetWithContext(ctx, name, pairs...)
+}
+
+// GetWithContext will get a valid storager instance for service.
+func (s *Service) GetWithContext(ctx context.Context, name string, pairs ...Pair) (store Storager, err error) {
+	defer func() {
+		err = s.formatError("get", err, name)
+	}()
+	var opt *pairServiceGet
+	opt, err = s.parsePairServiceGet(pairs)
+	if err != nil {
+		return
+	}
+
+	return s.get(ctx, name, opt)
+}
+
+// List will list all storager instances under this service.
+//
+// This function will create a context by default.
+func (s *Service) List(pairs ...Pair) (sti *StoragerIterator, err error) {
+	ctx := context.Background()
+	return s.ListWithContext(ctx, pairs...)
+}
+
+// ListWithContext will list all storager instances under this service.
+func (s *Service) ListWithContext(ctx context.Context, pairs ...Pair) (sti *StoragerIterator, err error) {
+	defer func() {
+
+		err = s.formatError("list", err, "")
+	}()
+	var opt *pairServiceList
+	opt, err = s.parsePairServiceList(pairs)
+	if err != nil {
+		return
+	}
+
+	return s.list(ctx, opt)
 }
