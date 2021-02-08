@@ -3,11 +3,11 @@ package cos
 import (
 	"context"
 
-	"github.com/aos-dev/go-storage/v2"
-	ps "github.com/aos-dev/go-storage/v2/types/pairs"
+	ps "github.com/aos-dev/go-storage/v3/pairs"
+	typ "github.com/aos-dev/go-storage/v3/types"
 )
 
-func (s *Service) create(ctx context.Context, name string, opt *pairServiceCreate) (store storage.Storager, err error) {
+func (s *Service) create(ctx context.Context, name string, opt *pairServiceCreate) (store typ.Storager, err error) {
 	st, err := s.newStorage(ps.WithName(name), ps.WithLocation(opt.Location))
 	if err != nil {
 		return nil, err
@@ -18,6 +18,7 @@ func (s *Service) create(ctx context.Context, name string, opt *pairServiceCreat
 	}
 	return st, nil
 }
+
 func (s *Service) delete(ctx context.Context, name string, opt *pairServiceDelete) (err error) {
 	store, err := s.newStorage(ps.WithName(name), ps.WithLocation(opt.Location))
 	if err != nil {
@@ -29,24 +30,33 @@ func (s *Service) delete(ctx context.Context, name string, opt *pairServiceDelet
 	}
 	return
 }
-func (s *Service) get(ctx context.Context, name string, opt *pairServiceGet) (store storage.Storager, err error) {
+
+func (s *Service) get(ctx context.Context, name string, opt *pairServiceGet) (store typ.Storager, err error) {
 	st, err := s.newStorage(ps.WithName(name), ps.WithLocation(opt.Location))
 	if err != nil {
 		return nil, err
 	}
 	return st, nil
 }
-func (s *Service) list(ctx context.Context, opt *pairServiceList) (err error) {
+
+func (s *Service) list(ctx context.Context, opt *pairServiceList) (it *typ.StoragerIterator, err error) {
+	return typ.NewStoragerIterator(ctx, s.nextStoragePage, nil), nil
+}
+
+func (s *Service) nextStoragePage(ctx context.Context, page *typ.StoragerPage) error {
 	output, _, err := s.service.Service.Get(ctx)
 	if err != nil {
 		return err
 	}
+
 	for _, v := range output.Buckets {
 		store, err := s.newStorage(ps.WithName(v.Name), ps.WithLocation(v.Region))
 		if err != nil {
 			return err
 		}
-		opt.StoragerFunc(store)
+
+		page.Data = append(page.Data, store)
 	}
-	return
+
+	return typ.IterateDone
 }

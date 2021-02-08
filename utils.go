@@ -6,15 +6,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aos-dev/go-storage/v2/pkg/httpclient"
-	"github.com/aos-dev/go-storage/v2/types/info"
 	"github.com/tencentyun/cos-go-sdk-v5"
 
-	"github.com/aos-dev/go-storage/v2"
-	"github.com/aos-dev/go-storage/v2/pkg/credential"
-	"github.com/aos-dev/go-storage/v2/services"
-	"github.com/aos-dev/go-storage/v2/types"
-	ps "github.com/aos-dev/go-storage/v2/types/pairs"
+	ps "github.com/aos-dev/go-storage/v3/pairs"
+	"github.com/aos-dev/go-storage/v3/pkg/credential"
+	"github.com/aos-dev/go-storage/v3/pkg/httpclient"
+	"github.com/aos-dev/go-storage/v3/services"
+	typ "github.com/aos-dev/go-storage/v3/types"
 )
 
 // Service is the Tencent oss *Service config.
@@ -36,6 +34,8 @@ type Storage struct {
 	name     string
 	location string
 	workDir  string
+
+	pairPolicy typ.PairPolicy
 }
 
 // String implements Storager.String
@@ -47,25 +47,25 @@ func (s *Storage) String() string {
 }
 
 // New will create both Servicer and Storager.
-func New(pairs ...*types.Pair) (_ storage.Servicer, _ storage.Storager, err error) {
+func New(pairs ...typ.Pair) (_ typ.Servicer, _ typ.Storager, err error) {
 	return newServicerAndStorager(pairs...)
 }
 
 // NewServicer will create Servicer only.
-func NewServicer(pairs ...*types.Pair) (storage.Servicer, error) {
+func NewServicer(pairs ...typ.Pair) (typ.Servicer, error) {
 	return newServicer(pairs...)
 }
 
 // NewStorager will create Storager only.
-func NewStorager(pairs ...*types.Pair) (storage.Storager, error) {
+func NewStorager(pairs ...typ.Pair) (typ.Storager, error) {
 	_, store, err := newServicerAndStorager(pairs...)
 	return store, err
 }
 
-func newServicer(pairs ...*types.Pair) (srv *Service, err error) {
+func newServicer(pairs ...typ.Pair) (srv *Service, err error) {
 	defer func() {
 		if err != nil {
-			err = &services.InitError{Op: services.OpNewServicer, Type: Type, Err: err, Pairs: pairs}
+			err = &services.InitError{Op: "new_servicer", Type: Type, Err: err, Pairs: pairs}
 		}
 	}()
 
@@ -76,16 +76,20 @@ func newServicer(pairs ...*types.Pair) (srv *Service, err error) {
 		return nil, err
 	}
 
-	credProtocol, cred := opt.Credential.Protocol(), opt.Credential.Value()
-	if credProtocol != credential.ProtocolHmac {
+	cp, err := credential.Parse(opt.Credential)
+	if err != nil {
+		return nil, err
+	}
+	if cp.Protocol() != credential.ProtocolHmac {
 		return nil, services.NewPairUnsupportedError(ps.WithCredential(opt.Credential))
 	}
+	ak, sk := cp.Hmac()
 
 	httpClient := httpclient.New(opt.HTTPClientOptions)
 	httpClient.Transport = &cos.AuthorizationTransport{
 		Transport: httpClient.Transport,
-		SecretID:  cred[0],
-		SecretKey: cred[1],
+		SecretID:  ak,
+		SecretKey: sk,
 	}
 
 	srv.client = httpClient
@@ -94,10 +98,10 @@ func newServicer(pairs ...*types.Pair) (srv *Service, err error) {
 }
 
 // newServicerAndStorager will create a new Tencent oss service.
-func newServicerAndStorager(pairs ...*types.Pair) (srv *Service, store *Storage, err error) {
+func newServicerAndStorager(pairs ...typ.Pair) (srv *Service, store *Storage, err error) {
 	defer func() {
 		if err != nil {
-			err = &services.InitError{Op: services.OpNewStorager, Type: Type, Err: err, Pairs: pairs}
+			err = &services.InitError{Op: "new_storager", Type: Type, Err: err, Pairs: pairs}
 		}
 	}()
 
@@ -149,7 +153,7 @@ func formatError(err error) error {
 }
 
 // newStorage will create a new client.
-func (s *Service) newStorage(pairs ...*types.Pair) (st *Storage, err error) {
+func (s *Service) newStorage(pairs ...typ.Pair) (st *Storage, err error) {
 	opt, err := parsePairStorageNew(pairs)
 	if err != nil {
 		return nil, err
@@ -210,21 +214,20 @@ func (s *Storage) formatError(op string, err error, path ...string) error {
 	}
 }
 
-func (s *Storage) formatFileObject(v cos.Object) (o *types.Object, err error) {
-	o = &types.Object{
-		ID:         v.Key,
-		Name:       s.getRelPath(v.Key),
-		Type:       types.ObjectTypeFile,
-		Size:       int64(v.Size),
-		ObjectMeta: info.NewObjectMeta(),
-	}
+func (s *Storage) formatFileObject(v cos.Object) (o *typ.Object, err error) {
+	o = s.newObject(false)
+	o.ID = v.Key
+	o.Path = s.getRelPath(v.Key)
+	o.Mode |= typ.ModeRead
+
+	o.SetContentLength(int64(v.Size))
 
 	// COS returns different value depends on object upload method or
 	// encryption method, so we can't treat this value as content-md5
 	//
 	// ref: https://cloud.tencent.com/document/product/436/7729
 	if v.ETag != "" {
-		o.SetETag(v.ETag)
+		o.SetEtag(v.ETag)
 	}
 
 	// COS uses ISO8601 format: "2019-05-27T11:26:14.000Z" in List
@@ -235,12 +238,18 @@ func (s *Storage) formatFileObject(v cos.Object) (o *types.Object, err error) {
 		if err != nil {
 			return nil, err
 		}
-		o.UpdatedAt = t
+		o.SetLastModified(t)
 	}
 
+	sm := make(map[string]string)
 	if value := v.StorageClass; value != "" {
-		setStorageClass(o.ObjectMeta, value)
+		sm[MetadataStorageClass] = value
 	}
+	o.SetServiceMetadata(sm)
 
 	return o, nil
+}
+
+func (s *Storage) newObject(done bool) *typ.Object {
+	return typ.NewObject(s, done)
 }
