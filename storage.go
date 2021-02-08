@@ -149,6 +149,8 @@ func (s *Storage) stat(ctx context.Context, path string, opt *pairStorageStat) (
 	o.Path = path
 	o.Mode |= ModeRead
 
+	o.SetContentLength(output.ContentLength)
+
 	// COS uses RFC1123 format in HEAD
 	//
 	// > Last-Modified: Fri, 09 Aug 2019 10:20:56 GMT
