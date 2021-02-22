@@ -13,7 +13,7 @@ import (
 	. "github.com/aos-dev/go-storage/v3/types"
 )
 
-func (s *Storage) delete(ctx context.Context, path string, opt *pairStorageDelete) (err error) {
+func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete) (err error) {
 	rp := s.getAbsPath(path)
 
 	_, err = s.object.Delete(ctx, rp)
@@ -23,7 +23,7 @@ func (s *Storage) delete(ctx context.Context, path string, opt *pairStorageDelet
 	return nil
 }
 
-func (s *Storage) list(ctx context.Context, path string, opt *pairStorageList) (oi *ObjectIterator, err error) {
+func (s *Storage) list(ctx context.Context, path string, opt pairStorageList) (oi *ObjectIterator, err error) {
 	input := &objectPageStatus{
 		maxKeys: 200,
 		prefix:  s.getAbsPath(path),
@@ -44,7 +44,7 @@ func (s *Storage) list(ctx context.Context, path string, opt *pairStorageList) (
 	return NewObjectIterator(ctx, nextFn, input), nil
 }
 
-func (s *Storage) metadata(ctx context.Context, opt *pairStorageMetadata) (meta *StorageMeta, err error) {
+func (s *Storage) metadata(ctx context.Context, opt pairStorageMetadata) (meta *StorageMeta, err error) {
 	meta = NewStorageMeta()
 	meta.Name = s.name
 	meta.WorkDir = s.workDir
@@ -119,7 +119,7 @@ func (s *Storage) nextObjectPageByPrefix(ctx context.Context, page *ObjectPage) 
 	return nil
 }
 
-func (s *Storage) read(ctx context.Context, path string, w io.Writer, opt *pairStorageRead) (n int64, err error) {
+func (s *Storage) read(ctx context.Context, path string, w io.Writer, opt pairStorageRead) (n int64, err error) {
 	rp := s.getAbsPath(path)
 
 	resp, err := s.object.Get(ctx, rp, nil)
@@ -136,7 +136,7 @@ func (s *Storage) read(ctx context.Context, path string, w io.Writer, opt *pairS
 	return io.Copy(w, rc)
 }
 
-func (s *Storage) stat(ctx context.Context, path string, opt *pairStorageStat) (o *Object, err error) {
+func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o *Object, err error) {
 	rp := s.getAbsPath(path)
 
 	output, err := s.object.Head(ctx, rp, nil)
@@ -181,7 +181,7 @@ func (s *Storage) stat(ctx context.Context, path string, opt *pairStorageStat) (
 	return o, nil
 }
 
-func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int64, opt *pairStorageWrite) (n int64, err error) {
+func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int64, opt pairStorageWrite) (n int64, err error) {
 	if opt.HasIoCallback {
 		r = iowrap.CallbackReader(r, opt.IoCallback)
 	}
