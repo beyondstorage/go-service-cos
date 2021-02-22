@@ -19,6 +19,8 @@ import (
 type Service struct {
 	service *cos.Client
 	client  *http.Client
+
+	defaultPairs DefaultServicePairs
 }
 
 // String implements Servicer.String
@@ -35,7 +37,8 @@ type Storage struct {
 	location string
 	workDir  string
 
-	pairPolicy typ.PairPolicy
+	defaultPairs DefaultStoragePairs
+	pairPolicy   typ.PairPolicy
 }
 
 // String implements Storager.String
@@ -94,6 +97,10 @@ func newServicer(pairs ...typ.Pair) (srv *Service, err error) {
 
 	srv.client = httpClient
 	srv.service = cos.NewClient(nil, srv.client)
+
+	if opt.HasDefaultServicePairs {
+		srv.defaultPairs = opt.DefaultServicePairs
+	}
 	return
 }
 
@@ -172,6 +179,14 @@ func (s *Service) newStorage(pairs ...typ.Pair) (st *Storage, err error) {
 	st.workDir = "/"
 	if opt.HasWorkDir {
 		st.workDir = opt.WorkDir
+	}
+
+	if opt.HasDefaultStoragePairs {
+		st.defaultPairs = opt.DefaultStoragePairs
+	}
+
+	if opt.HasPairPolicy {
+		st.pairPolicy = opt.PairPolicy
 	}
 	return st, nil
 }
