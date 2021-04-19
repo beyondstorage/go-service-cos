@@ -21,6 +21,8 @@ type Service struct {
 	client  *http.Client
 
 	defaultPairs DefaultServicePairs
+
+	typ.UnimplementedServicer
 }
 
 // String implements Servicer.String
@@ -39,6 +41,8 @@ type Storage struct {
 
 	defaultPairs DefaultStoragePairs
 	pairPolicy   typ.PairPolicy
+
+	typ.UnimplementedStorager
 }
 
 // String implements Storager.String
