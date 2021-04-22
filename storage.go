@@ -198,7 +198,7 @@ func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int6
 
 	putOptions := &cos.ObjectPutOptions{
 		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
-			ContentLength: int(size),
+			ContentLength: size,
 		},
 	}
 	if opt.HasContentMd5 {
