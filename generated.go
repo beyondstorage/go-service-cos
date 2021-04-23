@@ -43,6 +43,14 @@ const (
 
 // Service available metadata.
 const (
+	MetadataServerSideEncryption = "cos-server-side-encryption"
+
+	MetadataServerSideEncryptionCosKmsKeyID = "cos-server-side-encryption-cos-kms-key-id"
+
+	MetadataServerSideEncryptionCustomerAlgorithm = "cos-server-side-encryption-customer-algorithm"
+
+	MetadataServerSideEncryptionCustomerKeyMd5 = "cos-server-side-encryption-customer-key-md5"
+
 	MetadataStorageClass = "cos-storage-class"
 )
 

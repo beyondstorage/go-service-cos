@@ -64,3 +64,15 @@ description = "the server-side encryption algorithm used when storing this objec
 
 [infos.object.meta.storage-class]
 type = "string"
+
+[infos.object.meta.server-side-encryption]
+type = "string"
+
+[infos.object.meta.server-side-encryption-cos-kms-key-id]
+type = "string"
+
+[infos.object.meta.server-side-encryption-customer-algorithm]
+type = "string"
+
+[infos.object.meta.server-side-encryption-customer-key-md5]
+type = "string"

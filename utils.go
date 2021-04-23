@@ -277,6 +277,12 @@ func (s *Storage) newObject(done bool) *typ.Object {
 
 // All available server side algorithm are listed here.
 const (
+	// ref: https://cloud.tencent.com/document/product/436/7729
+	serverSideEncryptionHeader                  = "x-cos-server-side-encryption"
+	serverSideEncryptionCosKmsKeyIdHeader       = "x-cos-server-side-encryption-cos-kms-key-id"
+	serverSideEncryptionCustomerAlgorithmHeader = "x-cos-server-side-encryption-customer-algorithm"
+	serverSideEncryptionCustomerKeyMd5Header    = "x-cos-server-side-encryption-customer-key-MD5"
+
 	ServerSideEncryptionAes256 = "AES256"
 	ServerSideEncryptionCosKms = "cos/kms"
 )

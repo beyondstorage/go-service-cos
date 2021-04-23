@@ -201,6 +201,18 @@ func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o
 	if v := output.Header.Get(storageClassHeader); v != "" {
 		sm[MetadataStorageClass] = v
 	}
+	if v := output.Header.Get(serverSideEncryptionHeader); v != "" {
+		sm[MetadataServerSideEncryption] = v
+	}
+	if v := output.Header.Get(serverSideEncryptionCosKmsKeyIdHeader); v != "" {
+		sm[MetadataServerSideEncryptionCosKmsKeyID] = v
+	}
+	if v := output.Header.Get(serverSideEncryptionCustomerAlgorithmHeader); v != "" {
+		sm[MetadataServerSideEncryptionCustomerAlgorithm] = v
+	}
+	if v := output.Header.Get(serverSideEncryptionCustomerKeyMd5Header); v != "" {
+		sm[MetadataServerSideEncryptionCustomerKeyMd5] = v
+	}
 	o.SetServiceMetadata(sm)
 
 	return o, nil
