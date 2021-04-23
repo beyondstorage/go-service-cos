@@ -27,6 +27,16 @@ const (
 	pairDefaultServicePairs = "cos_default_service_pairs"
 	// DefaultStoragePairs set default pairs for storager actions
 	pairDefaultStoragePairs = "cos_default_storage_pairs"
+	// ServerSideEncryption the server-side encryption algorithm used when storing this object. It can be `AES-256` for SSE-COS, and `cos/kms` for SSE-KMS.
+	pairServerSideEncryption = "cos_server_side_encryption"
+	// ServerSideEncryptionContext specifies the COS KMS Encryption Context to use for object encryption. The value of this header is a base64-encoded UTF-8 string holding JSON with the encryption context key-value pairs.
+	pairServerSideEncryptionContext = "cos_server_side_encryption_context"
+	// ServerSideEncryptionCosKmsKeyID specifies the COS KMS key ID to use for object encryption.
+	pairServerSideEncryptionCosKmsKeyID = "cos_server_side_encryption_cos_kms_key_id"
+	// ServerSideEncryptionCustomerAlgorithm specifies the algorithm to use to when encrypting the object. Now only `AES256` is supported.
+	pairServerSideEncryptionCustomerAlgorithm = "cos_server_side_encryption_customer_algorithm"
+	// ServerSideEncryptionCustomerKey specifies the customer-provided encryption key to encrypt/decrypt the source object. It must be a 32-byte AES-256 key.
+	pairServerSideEncryptionCustomerKey = "cos_server_side_encryption_customer_key"
 	// StorageClass
 	pairStorageClass = "cos_storage_class"
 )
@@ -50,6 +60,51 @@ func WithDefaultServicePairs(v DefaultServicePairs) Pair {
 func WithDefaultStoragePairs(v DefaultStoragePairs) Pair {
 	return Pair{
 		Key:   pairDefaultStoragePairs,
+		Value: v,
+	}
+}
+
+// WithServerSideEncryption will apply server_side_encryption value to Options
+// ServerSideEncryption the server-side encryption algorithm used when storing this object. It can be `AES-256` for SSE-COS, and `cos/kms` for SSE-KMS.
+func WithServerSideEncryption(v string) Pair {
+	return Pair{
+		Key:   pairServerSideEncryption,
+		Value: v,
+	}
+}
+
+// WithServerSideEncryptionContext will apply server_side_encryption_context value to Options
+// ServerSideEncryptionContext specifies the COS KMS Encryption Context to use for object encryption. The value of this header is a base64-encoded UTF-8 string holding JSON with the encryption context key-value pairs.
+func WithServerSideEncryptionContext(v string) Pair {
+	return Pair{
+		Key:   pairServerSideEncryptionContext,
+		Value: v,
+	}
+}
+
+// WithServerSideEncryptionCosKmsKeyID will apply server_side_encryption_cos_kms_key_id value to Options
+// ServerSideEncryptionCosKmsKeyID specifies the COS KMS key ID to use for object encryption.
+func WithServerSideEncryptionCosKmsKeyID(v string) Pair {
+	return Pair{
+		Key:   pairServerSideEncryptionCosKmsKeyID,
+		Value: v,
+	}
+}
+
+// WithServerSideEncryptionCustomerAlgorithm will apply server_side_encryption_customer_algorithm value to Options
+// ServerSideEncryptionCustomerAlgorithm specifies the algorithm to use to when encrypting the object. Now only `AES256` is supported.
+func WithServerSideEncryptionCustomerAlgorithm(v string) Pair {
+	return Pair{
+		Key:   pairServerSideEncryptionCustomerAlgorithm,
+		Value: v,
+	}
+}
+
+// WithServerSideEncryptionCustomerKey will apply server_side_encryption_customer_key value to Options
+// ServerSideEncryptionCustomerKey specifies the customer-provided encryption key to encrypt/decrypt the source object. It must be a 32-byte AES-256 key.
+func WithServerSideEncryptionCustomerKey(v []byte) Pair {
+	return Pair{
+		Key:   pairServerSideEncryptionCustomerKey,
 		Value: v,
 	}
 }
@@ -599,12 +654,16 @@ type pairStorageRead struct {
 
 	// Required pairs
 	// Optional pairs
-	HasIoCallback bool
-	IoCallback    func([]byte)
-	HasOffset     bool
-	Offset        int64
-	HasSize       bool
-	Size          int64
+	HasIoCallback                            bool
+	IoCallback                               func([]byte)
+	HasOffset                                bool
+	Offset                                   int64
+	HasServerSideEncryptionCustomerAlgorithm bool
+	ServerSideEncryptionCustomerAlgorithm    string
+	HasServerSideEncryptionCustomerKey       bool
+	ServerSideEncryptionCustomerKey          []byte
+	HasSize                                  bool
+	Size                                     int64
 	// Generated pairs
 }
 
@@ -624,6 +683,12 @@ func (s *Storage) parsePairStorageRead(opts []Pair) (pairStorageRead, error) {
 		case "offset":
 			result.HasOffset = true
 			result.Offset = v.Value.(int64)
+		case pairServerSideEncryptionCustomerAlgorithm:
+			result.HasServerSideEncryptionCustomerAlgorithm = true
+			result.ServerSideEncryptionCustomerAlgorithm = v.Value.(string)
+		case pairServerSideEncryptionCustomerKey:
+			result.HasServerSideEncryptionCustomerKey = true
+			result.ServerSideEncryptionCustomerKey = v.Value.([]byte)
 		case "size":
 			result.HasSize = true
 			result.Size = v.Value.(int64)
@@ -646,6 +711,10 @@ type pairStorageStat struct {
 
 	// Required pairs
 	// Optional pairs
+	HasServerSideEncryptionCustomerAlgorithm bool
+	ServerSideEncryptionCustomerAlgorithm    string
+	HasServerSideEncryptionCustomerKey       bool
+	ServerSideEncryptionCustomerKey          []byte
 	// Generated pairs
 }
 
@@ -659,6 +728,12 @@ func (s *Storage) parsePairStorageStat(opts []Pair) (pairStorageStat, error) {
 		switch v.Key {
 		// Required pairs
 		// Optional pairs
+		case pairServerSideEncryptionCustomerAlgorithm:
+			result.HasServerSideEncryptionCustomerAlgorithm = true
+			result.ServerSideEncryptionCustomerAlgorithm = v.Value.(string)
+		case pairServerSideEncryptionCustomerKey:
+			result.HasServerSideEncryptionCustomerKey = true
+			result.ServerSideEncryptionCustomerKey = v.Value.([]byte)
 		// Generated pairs
 		default:
 
@@ -678,14 +753,24 @@ type pairStorageWrite struct {
 
 	// Required pairs
 	// Optional pairs
-	HasContentMd5   bool
-	ContentMd5      string
-	HasContentType  bool
-	ContentType     string
-	HasIoCallback   bool
-	IoCallback      func([]byte)
-	HasStorageClass bool
-	StorageClass    string
+	HasContentMd5                            bool
+	ContentMd5                               string
+	HasContentType                           bool
+	ContentType                              string
+	HasIoCallback                            bool
+	IoCallback                               func([]byte)
+	HasServerSideEncryption                  bool
+	ServerSideEncryption                     string
+	HasServerSideEncryptionContext           bool
+	ServerSideEncryptionContext              string
+	HasServerSideEncryptionCosKmsKeyID       bool
+	ServerSideEncryptionCosKmsKeyID          string
+	HasServerSideEncryptionCustomerAlgorithm bool
+	ServerSideEncryptionCustomerAlgorithm    string
+	HasServerSideEncryptionCustomerKey       bool
+	ServerSideEncryptionCustomerKey          []byte
+	HasStorageClass                          bool
+	StorageClass                             string
 	// Generated pairs
 }
 
@@ -708,6 +793,21 @@ func (s *Storage) parsePairStorageWrite(opts []Pair) (pairStorageWrite, error) {
 		case "io_callback":
 			result.HasIoCallback = true
 			result.IoCallback = v.Value.(func([]byte))
+		case pairServerSideEncryption:
+			result.HasServerSideEncryption = true
+			result.ServerSideEncryption = v.Value.(string)
+		case pairServerSideEncryptionContext:
+			result.HasServerSideEncryptionContext = true
+			result.ServerSideEncryptionContext = v.Value.(string)
+		case pairServerSideEncryptionCosKmsKeyID:
+			result.HasServerSideEncryptionCosKmsKeyID = true
+			result.ServerSideEncryptionCosKmsKeyID = v.Value.(string)
+		case pairServerSideEncryptionCustomerAlgorithm:
+			result.HasServerSideEncryptionCustomerAlgorithm = true
+			result.ServerSideEncryptionCustomerAlgorithm = v.Value.(string)
+		case pairServerSideEncryptionCustomerKey:
+			result.HasServerSideEncryptionCustomerKey = true
+			result.ServerSideEncryptionCustomerKey = v.Value.([]byte)
 		case pairStorageClass:
 			result.HasStorageClass = true
 			result.StorageClass = v.Value.(string)
