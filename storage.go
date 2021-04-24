@@ -180,9 +180,9 @@ func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o
 		o.SetEtag(v)
 	}
 
-	sm := make(map[string]string)
+	var sm ObjectMetadata
 	if v := output.Header.Get(storageClassHeader); v != "" {
-		sm[MetadataStorageClass] = v
+		sm.StorageClass = v
 	}
 	o.SetServiceMetadata(sm)
 
