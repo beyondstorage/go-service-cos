@@ -197,9 +197,9 @@ func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o
 		o.SetEtag(v)
 	}
 
-	sm := make(map[string]string)
+	var sm ObjectMetadata
 	if v := output.Header.Get(storageClassHeader); v != "" {
-		sm[MetadataStorageClass] = v
+		sm.StorageClass = v
 	}
 	if v := output.Header.Get(serverSideEncryptionHeader); v != "" {
 		sm[MetadataServerSideEncryption] = v
@@ -227,7 +227,7 @@ func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int6
 
 	putOptions := &cos.ObjectPutOptions{
 		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
-			ContentLength: int(size),
+			ContentLength: size,
 		},
 	}
 	if opt.HasContentMd5 {

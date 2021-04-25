@@ -41,18 +41,38 @@ const (
 	pairStorageClass = "cos_storage_class"
 )
 
-// Service available metadata.
-const (
-	MetadataServerSideEncryption = "cos-server-side-encryption"
+// ObjectMetadata stores service metadata for object.
+type ObjectMetadata struct {
+	// ServerSideEncryption
+	ServerSideEncryption string
+	// ServerSideEncryptionCosKmsKeyID
+	ServerSideEncryptionCosKmsKeyID string
+	// ServerSideEncryptionCustomerAlgorithm
+	ServerSideEncryptionCustomerAlgorithm string
+	// ServerSideEncryptionCustomerKeyMd5
+	ServerSideEncryptionCustomerKeyMd5 string
+	// StorageClass
+	StorageClass string
+}
 
-	MetadataServerSideEncryptionCosKmsKeyID = "cos-server-side-encryption-cos-kms-key-id"
+// GetObjectMetadata will get ObjectMetadata from Object.
+//
+// - This function should not be called by service implementer.
+// - The returning ObjectMetadata is read only and should not be modified.
+func GetObjectMetadata(o *Object) ObjectMetadata {
+	om, ok := o.GetServiceMetadata()
+	if ok {
+		return om.(ObjectMetadata)
+	}
+	return ObjectMetadata{}
+}
 
-	MetadataServerSideEncryptionCustomerAlgorithm = "cos-server-side-encryption-customer-algorithm"
-
-	MetadataServerSideEncryptionCustomerKeyMd5 = "cos-server-side-encryption-customer-key-md5"
-
-	MetadataStorageClass = "cos-storage-class"
-)
+// setObjectMetadata will set ObjectMetadata into Object.
+//
+// - This function should only be called once, please make sure all data has been written before set.
+func setObjectMetadata(o *Object, om ObjectMetadata) {
+	o.SetServiceMetadata(om)
+}
 
 // WithDefaultServicePairs will apply default_service_pairs value to Options
 // DefaultServicePairs set default pairs for service actions
