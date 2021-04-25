@@ -1,6 +1,8 @@
 package cos
 
 import (
+	"crypto/md5"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
@@ -271,4 +273,28 @@ func (s *Storage) formatFileObject(v cos.Object) (o *typ.Object, err error) {
 
 func (s *Storage) newObject(done bool) *typ.Object {
 	return typ.NewObject(s, done)
+}
+
+// All available server side algorithm are listed here.
+const (
+	// ref: https://cloud.tencent.com/document/product/436/7729
+	serverSideEncryptionHeader                  = "x-cos-server-side-encryption"
+	serverSideEncryptionCosKmsKeyIdHeader       = "x-cos-server-side-encryption-cos-kms-key-id"
+	serverSideEncryptionCustomerAlgorithmHeader = "x-cos-server-side-encryption-customer-algorithm"
+	serverSideEncryptionCustomerKeyMd5Header    = "x-cos-server-side-encryption-customer-key-MD5"
+	serverSideEncryptionContextHeader           = "x-cos-server-side-encryption-context"
+
+	ServerSideEncryptionAes256 = "AES256"
+	ServerSideEncryptionCosKms = "cos/kms"
+)
+
+func calculateEncryptionHeaders(algo string, key []byte) (algorithm, keyBase64, keyMD5Base64 string, err error) {
+	if len(key) != 32 {
+		err = ErrServerSideEncryptionCustomerKey
+		return
+	}
+	keyBase64 = base64.StdEncoding.EncodeToString(key)
+	keyMD5 := md5.Sum(key)
+	keyMD5Base64 = base64.StdEncoding.EncodeToString(keyMD5[:])
+	return
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"time"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
@@ -130,7 +131,15 @@ func (s *Storage) nextObjectPageByPrefix(ctx context.Context, page *ObjectPage) 
 func (s *Storage) read(ctx context.Context, path string, w io.Writer, opt pairStorageRead) (n int64, err error) {
 	rp := s.getAbsPath(path)
 
-	resp, err := s.object.Get(ctx, rp, nil)
+	getOptions := &cos.ObjectGetOptions{}
+	// SSE-C
+	if opt.HasServerSideEncryptionCustomerAlgorithm {
+		getOptions.XCosSSECustomerAglo, getOptions.XCosSSECustomerKey, getOptions.XCosSSECustomerKeyMD5, err = calculateEncryptionHeaders(opt.ServerSideEncryptionCustomerAlgorithm, opt.ServerSideEncryptionCustomerKey)
+		if err != nil {
+			return 0, err
+		}
+	}
+	resp, err := s.object.Get(ctx, rp, getOptions)
 	if err != nil {
 		return 0, err
 	}
@@ -147,7 +156,15 @@ func (s *Storage) read(ctx context.Context, path string, w io.Writer, opt pairSt
 func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o *Object, err error) {
 	rp := s.getAbsPath(path)
 
-	output, err := s.object.Head(ctx, rp, nil)
+	headOptions := &cos.ObjectHeadOptions{}
+	// SSE-C
+	if opt.HasServerSideEncryptionCustomerAlgorithm {
+		headOptions.XCosSSECustomerAglo, headOptions.XCosSSECustomerKey, headOptions.XCosSSECustomerKeyMD5, err = calculateEncryptionHeaders(opt.ServerSideEncryptionCustomerAlgorithm, opt.ServerSideEncryptionCustomerKey)
+		if err != nil {
+			return
+		}
+	}
+	output, err := s.object.Head(ctx, rp, headOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -184,6 +201,18 @@ func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o
 	if v := output.Header.Get(storageClassHeader); v != "" {
 		sm.StorageClass = v
 	}
+	if v := output.Header.Get(serverSideEncryptionHeader); v != "" {
+		sm.ServerSideEncryption = v
+	}
+	if v := output.Header.Get(serverSideEncryptionCosKmsKeyIdHeader); v != "" {
+		sm.ServerSideEncryptionCosKmsKeyID = v
+	}
+	if v := output.Header.Get(serverSideEncryptionCustomerAlgorithmHeader); v != "" {
+		sm.ServerSideEncryptionCustomerAlgorithm = v
+	}
+	if v := output.Header.Get(serverSideEncryptionCustomerKeyMd5Header); v != "" {
+		sm.ServerSideEncryptionCustomerKeyMd5 = v
+	}
 	o.SetServiceMetadata(sm)
 
 	return o, nil
@@ -206,6 +235,27 @@ func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int6
 	}
 	if opt.HasStorageClass {
 		putOptions.XCosStorageClass = opt.StorageClass
+	}
+	// SSE-C
+	if opt.HasServerSideEncryptionCustomerAlgorithm {
+		putOptions.XCosSSECustomerAglo, putOptions.XCosSSECustomerKey, putOptions.XCosSSECustomerKeyMD5, err = calculateEncryptionHeaders(opt.ServerSideEncryptionCustomerAlgorithm, opt.ServerSideEncryptionCustomerKey)
+		if err != nil {
+			return
+		}
+	}
+	// SSE-COS or SSE-KMS
+	if opt.HasServerSideEncryption {
+		putOptions.XCosServerSideEncryption = opt.ServerSideEncryption
+		if opt.ServerSideEncryption == ServerSideEncryptionCosKms {
+			// FIXME: we can remove the usage of `XOptionHeader` when cos' SDK supports SSE-KMS
+			putOptions.XOptionHeader = &http.Header{}
+			if opt.HasServerSideEncryptionCosKmsKeyID {
+				putOptions.XOptionHeader.Set(serverSideEncryptionCosKmsKeyIdHeader, opt.ServerSideEncryptionCosKmsKeyID)
+			}
+			if opt.HasServerSideEncryptionContext {
+				putOptions.XOptionHeader.Set(serverSideEncryptionContextHeader, opt.ServerSideEncryptionContext)
+			}
+		}
 	}
 	if opt.HasIoCallback {
 		r = iowrap.CallbackReader(r, opt.IoCallback)
