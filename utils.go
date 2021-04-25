@@ -282,6 +282,7 @@ const (
 	serverSideEncryptionCosKmsKeyIdHeader       = "x-cos-server-side-encryption-cos-kms-key-id"
 	serverSideEncryptionCustomerAlgorithmHeader = "x-cos-server-side-encryption-customer-algorithm"
 	serverSideEncryptionCustomerKeyMd5Header    = "x-cos-server-side-encryption-customer-key-MD5"
+	serverSideEncryptionContextHeader           = "x-cos-server-side-encryption-context"
 
 	ServerSideEncryptionAes256 = "AES256"
 	ServerSideEncryptionCosKms = "cos/kms"

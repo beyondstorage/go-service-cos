@@ -247,12 +247,13 @@ func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int6
 	if opt.HasServerSideEncryption {
 		putOptions.XCosServerSideEncryption = opt.ServerSideEncryption
 		if putOptions.XCosServerSideEncryption == ServerSideEncryptionCosKms {
+			// FIXME: we can remove the usage of `XOptionHeader` when cos' SDK supports SSE-KMS
 			putOptions.XOptionHeader = &http.Header{}
 			if opt.HasServerSideEncryptionCosKmsKeyID {
-				putOptions.XOptionHeader.Set("x-cos-server-side-encryption-cos-kms-key-id", opt.ServerSideEncryptionCosKmsKeyID)
+				putOptions.XOptionHeader.Set(serverSideEncryptionCosKmsKeyIdHeader, opt.ServerSideEncryptionCosKmsKeyID)
 			}
 			if opt.HasServerSideEncryptionContext {
-				putOptions.XOptionHeader.Set("x-cos-server-side-encryption-context", opt.ServerSideEncryptionContext)
+				putOptions.XOptionHeader.Set(serverSideEncryptionContextHeader, opt.ServerSideEncryptionContext)
 			}
 		}
 	}
