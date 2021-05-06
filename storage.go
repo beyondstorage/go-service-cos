@@ -27,6 +27,11 @@ func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete
 
 	_, err = s.object.Delete(ctx, rp)
 	if err != nil {
+		if e, ok := err.(*cos.ErrorResponse); ok {
+			if e.Code == NoSuchKey {
+				return nil
+			}
+		}
 		return err
 	}
 	return nil
