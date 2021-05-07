@@ -74,7 +74,8 @@ func setObjectMetadata(o *Object, om ObjectMetadata) {
 	o.SetServiceMetadata(om)
 }
 
-// WithDefaultServicePairs will apply default_service_pairs value to Options
+// WithDefaultServicePairs will apply default_service_pairs value to Options.
+//
 // DefaultServicePairs set default pairs for service actions
 func WithDefaultServicePairs(v DefaultServicePairs) Pair {
 	return Pair{
@@ -83,7 +84,8 @@ func WithDefaultServicePairs(v DefaultServicePairs) Pair {
 	}
 }
 
-// WithDefaultStoragePairs will apply default_storage_pairs value to Options
+// WithDefaultStoragePairs will apply default_storage_pairs value to Options.
+//
 // DefaultStoragePairs set default pairs for storager actions
 func WithDefaultStoragePairs(v DefaultStoragePairs) Pair {
 	return Pair{
@@ -92,7 +94,8 @@ func WithDefaultStoragePairs(v DefaultStoragePairs) Pair {
 	}
 }
 
-// WithServerSideEncryption will apply server_side_encryption value to Options
+// WithServerSideEncryption will apply server_side_encryption value to Options.
+//
 // ServerSideEncryption the server-side encryption algorithm used when storing this object. It can be `AES-256` for SSE-COS, and `cos/kms` for SSE-KMS.
 func WithServerSideEncryption(v string) Pair {
 	return Pair{
@@ -101,7 +104,8 @@ func WithServerSideEncryption(v string) Pair {
 	}
 }
 
-// WithServerSideEncryptionContext will apply server_side_encryption_context value to Options
+// WithServerSideEncryptionContext will apply server_side_encryption_context value to Options.
+//
 // ServerSideEncryptionContext specifies the COS KMS Encryption Context to use for object encryption. The value of this header is a base64-encoded UTF-8 string holding JSON with the encryption context key-value pairs.
 func WithServerSideEncryptionContext(v string) Pair {
 	return Pair{
@@ -110,7 +114,8 @@ func WithServerSideEncryptionContext(v string) Pair {
 	}
 }
 
-// WithServerSideEncryptionCosKmsKeyID will apply server_side_encryption_cos_kms_key_id value to Options
+// WithServerSideEncryptionCosKmsKeyID will apply server_side_encryption_cos_kms_key_id value to Options.
+//
 // ServerSideEncryptionCosKmsKeyID specifies the COS KMS key ID to use for object encryption.
 func WithServerSideEncryptionCosKmsKeyID(v string) Pair {
 	return Pair{
@@ -119,7 +124,8 @@ func WithServerSideEncryptionCosKmsKeyID(v string) Pair {
 	}
 }
 
-// WithServerSideEncryptionCustomerAlgorithm will apply server_side_encryption_customer_algorithm value to Options
+// WithServerSideEncryptionCustomerAlgorithm will apply server_side_encryption_customer_algorithm value to Options.
+//
 // ServerSideEncryptionCustomerAlgorithm specifies the algorithm to use to when encrypting the object. Now only `AES256` is supported.
 func WithServerSideEncryptionCustomerAlgorithm(v string) Pair {
 	return Pair{
@@ -128,7 +134,8 @@ func WithServerSideEncryptionCustomerAlgorithm(v string) Pair {
 	}
 }
 
-// WithServerSideEncryptionCustomerKey will apply server_side_encryption_customer_key value to Options
+// WithServerSideEncryptionCustomerKey will apply server_side_encryption_customer_key value to Options.
+//
 // ServerSideEncryptionCustomerKey specifies the customer-provided encryption key to encrypt/decrypt the source object. It must be a 32-byte AES-256 key.
 func WithServerSideEncryptionCustomerKey(v []byte) Pair {
 	return Pair{
@@ -137,7 +144,8 @@ func WithServerSideEncryptionCustomerKey(v []byte) Pair {
 	}
 }
 
-// WithStorageClass will apply storage_class value to Options
+// WithStorageClass will apply storage_class value to Options.
+//
 // StorageClass
 func WithStorageClass(v string) Pair {
 	return Pair{

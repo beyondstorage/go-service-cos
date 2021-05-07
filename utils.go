@@ -298,3 +298,19 @@ func calculateEncryptionHeaders(algo string, key []byte) (algorithm, keyBase64, 
 	keyMD5Base64 = base64.StdEncoding.EncodeToString(keyMD5[:])
 	return
 }
+
+// cos service response error code
+//
+// ref: https://cloud.tencent.com/document/product/436/7730
+const (
+	// NoSuchKey the specified key does not exist.
+	responseCodeNoSuchKey = "NoSuchKey"
+)
+
+func checkError(err error, code string) bool {
+	if e, ok := err.(*cos.ErrorResponse); ok {
+		return strings.Contains(e.Code, code)
+	}
+
+	return false
+}

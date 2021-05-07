@@ -26,9 +26,14 @@ func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete
 	rp := s.getAbsPath(path)
 
 	_, err = s.object.Delete(ctx, rp)
+	if err != nil && checkError(err, responseCodeNoSuchKey) {
+		// omit `NoSuchKey` error, refer to https://github.com/aos-dev/specs/blob/master/rfcs/46-idempotent-delete.md
+		err = nil
+	}
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
