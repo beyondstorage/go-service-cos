@@ -45,6 +45,7 @@ type Storage struct {
 	pairPolicy   typ.PairPolicy
 
 	typ.UnimplementedStorager
+	typ.UnimplementedMultiparter
 }
 
 // String implements Storager.String
@@ -304,6 +305,8 @@ func calculateEncryptionHeaders(algo string, key []byte) (algorithm, keyBase64, 
 const (
 	// NoSuchKey the specified key does not exist.
 	responseCodeNoSuchKey = "NoSuchKey"
+	// NoSuchUpload the specified uploadId dose not exist.
+	responseCodeNoSuchUpload = "NoSuchUpload"
 )
 
 func checkError(err error, code string) bool {
@@ -313,3 +316,14 @@ func checkError(err error, code string) bool {
 
 	return false
 }
+
+// multipartXXX are multipart upload restriction in COS, see more details at:
+// https://cloud.tencent.com/document/product/436/7750
+const (
+	// multipartNumberMaximum is the max part count supported.
+	multipartNumberMaximum = 10000
+	// multipartSizeMaximum is the maximum size for each part, 5GB.
+	multipartSizeMaximum = 5 * 1024 * 1024 * 1024
+	// multipartSizeMinimum is the minimum size for each part, 1MB.
+	multipartSizeMinimum = 1024 * 1024
+)
