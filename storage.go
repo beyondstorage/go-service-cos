@@ -14,20 +14,115 @@ import (
 	. "github.com/aos-dev/go-storage/v3/types"
 )
 
+func (s *Storage) completeMultipart(ctx context.Context, o *Object, parts []*Part, opt pairStorageCompleteMultipart) (err error) {
+	if o.Mode&ModePart == 0 {
+		return services.ObjectModeInvalidError{Expected: ModePart, Actual: o.Mode}
+	}
+
+	upload := &cos.CompleteMultipartUploadOptions{}
+	for _, v := range parts {
+		upload.Parts = append(upload.Parts, cos.Object{
+			ETag: v.ETag,
+			// For users the `PartNumber` is zero-based. But for COS, the effective `PartNumber` is [1, 10000].
+			// Set PartNumber=v.Index+1 here to ensure pass in an effective `PartNumber` for `cos.Object`.
+			PartNumber: v.Index + 1,
+		})
+	}
+
+	_, _, err = s.object.CompleteMultipartUpload(ctx, o.ID, o.MustGetMultipartID(), upload)
+	if err != nil {
+		return
+	}
+
+	o.Mode.Del(ModePart)
+	o.Mode.Add(ModeRead)
+	return
+}
+
 func (s *Storage) create(path string, opt pairStorageCreate) (o *Object) {
-	o = s.newObject(false)
-	o.Mode = ModeRead
+	// Handle create multipart object separately.
+	if opt.HasMultipartID {
+		o = s.newObject(true)
+		o.Mode = ModePart
+		o.SetMultipartID(opt.MultipartID)
+	} else {
+		o = s.newObject(false)
+		o.Mode = ModeRead
+	}
 	o.ID = s.getAbsPath(path)
 	o.Path = path
 	return o
 }
 
+func (s *Storage) createMultipart(ctx context.Context, path string, opt pairStorageCreateMultipart) (o *Object, err error) {
+	rp := s.getAbsPath(path)
+
+	input := &cos.InitiateMultipartUploadOptions{}
+	if opt.HasStorageClass {
+		input.XCosStorageClass = opt.StorageClass
+	}
+	if opt.HasContentType {
+		input.ContentType = opt.ContentType
+	}
+	// SSE-C
+	if opt.HasServerSideEncryptionCustomerAlgorithm {
+		input.XCosSSECustomerAglo, input.XCosSSECustomerKey, input.XCosSSECustomerKeyMD5, err = calculateEncryptionHeaders(opt.ServerSideEncryptionCustomerAlgorithm, opt.ServerSideEncryptionCustomerKey)
+		if err != nil {
+			return
+		}
+	}
+	// SSE-COS or SSE-KMS
+	if opt.HasServerSideEncryption {
+		input.XCosServerSideEncryption = opt.ServerSideEncryption
+		if opt.ServerSideEncryption == ServerSideEncryptionCosKms {
+			// FIXME: we can remove the usage of `XOptionHeader` when cos' SDK supports SSE-KMS
+			input.XOptionHeader = &http.Header{}
+			if opt.HasServerSideEncryptionCosKmsKeyID {
+				input.XOptionHeader.Set(serverSideEncryptionCosKmsKeyIdHeader, opt.ServerSideEncryptionCosKmsKeyID)
+			}
+			if opt.HasServerSideEncryptionContext {
+				input.XOptionHeader.Set(serverSideEncryptionContextHeader, opt.ServerSideEncryptionContext)
+			}
+		}
+	}
+
+	output, _, err := s.object.InitiateMultipartUpload(ctx, rp, input)
+	if err != nil {
+		return
+	}
+
+	o = s.newObject(true)
+	o.ID = rp
+	o.Path = path
+	o.Mode |= ModePart
+	o.SetMultipartID(output.UploadID)
+	// set multipart restriction
+	o.SetMultipartNumberMaximum(multipartNumberMaximum)
+	o.SetMultipartSizeMaximum(multipartSizeMaximum)
+	o.SetMultipartSizeMinimum(multipartSizeMinimum)
+	return o, nil
+}
+
 func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete) (err error) {
 	rp := s.getAbsPath(path)
 
+	if opt.HasMultipartID {
+		_, err = s.object.AbortMultipartUpload(ctx, rp, opt.MultipartID)
+		if err != nil && checkError(err, responseCodeNoSuchUpload) {
+			// Omit `NoSuchUpload` error here.
+			// ref: https://github.com/aos-dev/specs/blob/master/rfcs/46-idempotent-delete.md
+			err = nil
+		}
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
 	_, err = s.object.Delete(ctx, rp)
 	if err != nil && checkError(err, responseCodeNoSuchKey) {
-		// omit `NoSuchKey` error, refer to https://github.com/aos-dev/specs/blob/master/rfcs/46-idempotent-delete.md
+		// Omit `NoSuchKey` error here.
+		// ref: https://github.com/aos-dev/specs/blob/master/rfcs/46-idempotent-delete.md
 		err = nil
 	}
 	if err != nil {
@@ -46,6 +141,8 @@ func (s *Storage) list(ctx context.Context, path string, opt pairStorageList) (o
 	var nextFn NextObjectFunc
 
 	switch {
+	case opt.ListMode.IsPart():
+		nextFn = s.nextPartObjectPageByPrefix
 	case opt.ListMode.IsDir():
 		input.delimiter = "/"
 		nextFn = s.nextObjectPageByDir
@@ -56,6 +153,20 @@ func (s *Storage) list(ctx context.Context, path string, opt pairStorageList) (o
 	}
 
 	return NewObjectIterator(ctx, nextFn, input), nil
+}
+
+func (s *Storage) listMultipart(ctx context.Context, o *Object, opt pairStorageListMultipart) (pi *PartIterator, err error) {
+	if o.Mode&ModePart == 0 {
+		return nil, services.ObjectModeInvalidError{Expected: ModePart, Actual: o.Mode}
+	}
+
+	input := &partPageStatus{
+		maxParts: "200",
+		key:      o.ID,
+		uploadId: o.MustGetMultipartID(),
+	}
+
+	return NewPartIterator(ctx, s.nextPartPage, input), nil
 }
 
 func (s *Storage) metadata(ctx context.Context, opt pairStorageMetadata) (meta *StorageMeta, err error) {
@@ -71,7 +182,7 @@ func (s *Storage) nextObjectPageByDir(ctx context.Context, page *ObjectPage) err
 	output, _, err := s.bucket.Get(ctx, &cos.BucketGetOptions{
 		Prefix:    input.prefix,
 		Delimiter: input.delimiter,
-		Marker:    input.marker,
+		Marker:    input.keyMarker,
 		MaxKeys:   input.maxKeys,
 	})
 	if err != nil {
@@ -100,7 +211,7 @@ func (s *Storage) nextObjectPageByDir(ctx context.Context, page *ObjectPage) err
 		return IterateDone
 	}
 
-	input.marker = output.NextMarker
+	input.keyMarker = output.NextMarker
 	return nil
 }
 
@@ -109,7 +220,7 @@ func (s *Storage) nextObjectPageByPrefix(ctx context.Context, page *ObjectPage) 
 
 	output, _, err := s.bucket.Get(ctx, &cos.BucketGetOptions{
 		Prefix:  input.prefix,
-		Marker:  input.marker,
+		Marker:  input.keyMarker,
 		MaxKeys: input.maxKeys,
 	})
 	if err != nil {
@@ -129,7 +240,72 @@ func (s *Storage) nextObjectPageByPrefix(ctx context.Context, page *ObjectPage) 
 		return IterateDone
 	}
 
-	input.marker = output.NextMarker
+	input.keyMarker = output.NextMarker
+	return nil
+}
+
+func (s *Storage) nextPartObjectPageByPrefix(ctx context.Context, page *ObjectPage) error {
+	input := page.Status.(*objectPageStatus)
+
+	listInput := &cos.ListMultipartUploadsOptions{
+		Prefix:         input.prefix,
+		MaxUploads:     input.maxKeys,
+		KeyMarker:      input.keyMarker,
+		UploadIDMarker: input.uploadIdMarker,
+	}
+
+	output, _, err := s.bucket.ListMultipartUploads(ctx, listInput)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range output.Uploads {
+		o := s.newObject(true)
+		o.ID = v.Key
+		o.Path = s.getRelPath(v.Key)
+		o.Mode |= ModePart
+		o.SetMultipartID(v.UploadID)
+
+		page.Data = append(page.Data, o)
+	}
+
+	if !output.IsTruncated {
+		return IterateDone
+	}
+
+	input.uploadIdMarker = output.NextUploadIDMarker
+	input.keyMarker = output.NextKeyMarker
+	return nil
+}
+
+func (s *Storage) nextPartPage(ctx context.Context, page *PartPage) error {
+	input := page.Status.(*partPageStatus)
+
+	output, _, err := s.object.ListParts(ctx, input.key, input.uploadId, &cos.ObjectListPartsOptions{
+		MaxParts:         input.maxParts,
+		PartNumberMarker: input.partNumberMarker,
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, v := range output.Parts {
+		p := &Part{
+			// The returned `PartNumber` is [1, 10000].
+			// Set Index=*v.PartNumber-1 here to make the `PartNumber` zero-based for user.
+			Index: v.PartNumber - 1,
+			Size:  v.Size,
+			ETag:  v.ETag,
+		}
+
+		page.Data = append(page.Data, p)
+	}
+
+	if !output.IsTruncated {
+		return IterateDone
+	}
+
+	input.partNumberMarker = output.NextPartNumberMarker
 	return nil
 }
 
@@ -160,6 +336,20 @@ func (s *Storage) read(ctx context.Context, path string, w io.Writer, opt pairSt
 
 func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o *Object, err error) {
 	rp := s.getAbsPath(path)
+
+	if opt.HasMultipartID {
+		_, _, err = s.object.ListParts(ctx, rp, opt.MultipartID, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		o = s.newObject(true)
+		o.ID = rp
+		o.Path = path
+		o.Mode |= ModePart
+		o.SetMultipartID(opt.MultipartID)
+		return o, nil
+	}
 
 	headOptions := &cos.ObjectHeadOptions{}
 	// SSE-C
@@ -271,4 +461,32 @@ func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int6
 		return 0, err
 	}
 	return
+}
+
+func (s *Storage) writeMultipart(ctx context.Context, o *Object, r io.Reader, size int64, index int, opt pairStorageWriteMultipart) (n int64, part *Part, err error) {
+	if o.Mode&ModePart == 0 {
+		return 0, nil, services.ObjectModeInvalidError{Expected: ModePart, Actual: o.Mode}
+	}
+
+	input := &cos.ObjectUploadPartOptions{
+		ContentLength: size,
+	}
+	if opt.HasContentMd5 {
+		input.ContentMD5 = opt.ContentMd5
+	}
+
+	// For COS, the `PartNumber` is [1, 10000]. But for users, the `PartNumber` is zero-based.
+	// Set PartNumber=index+1 here to ensure pass in an effective `PartNumber` for `UploadPart`.
+	// ref: https://cloud.tencent.com/document/product/436/7750
+	output, err := s.object.UploadPart(ctx, o.ID, o.MustGetMultipartID(), index+1, r, input)
+	if err != nil {
+		return
+	}
+
+	part = &Part{
+		Index: index,
+		Size:  size,
+		ETag:  output.Header.Get("ETag"),
+	}
+	return size, part, nil
 }

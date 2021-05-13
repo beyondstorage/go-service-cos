@@ -1,14 +1,15 @@
 package cos
 
 type objectPageStatus struct {
-	delimiter string
-	maxKeys   int
-	prefix    string
-	marker    string
+	delimiter      string
+	maxKeys        int
+	prefix         string
+	keyMarker      string
+	uploadIdMarker string
 }
 
 func (i *objectPageStatus) ContinuationToken() string {
-	return i.marker
+	return i.uploadIdMarker
 }
 
 type storagePageStatus struct {
@@ -18,4 +19,15 @@ type storagePageStatus struct {
 
 func (i *storagePageStatus) ContinuationToken() string {
 	return i.marker
+}
+
+type partPageStatus struct {
+	key              string
+	uploadId         string
+	maxParts         string
+	partNumberMarker string
+}
+
+func (i *partPageStatus) ContinuationToken() string {
+	return i.partNumberMarker
 }
