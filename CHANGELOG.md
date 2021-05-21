@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - *: Add UnimplementedStub (#15)
 - tests: Introduce STORAGE_COS_INTEGRATION_TEST (#16)
 - tests: Add docs for how to run tests 
-- storage: Implement AOS-40 (#18)
+- storage: Implement GSP-40 (#18)
 
 ### Changed
 
@@ -32,4 +32,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Implement cos services.
 
-[v1.1.0]: https://github.com/aos-dev/go-service-cos/compare/v1.0.0...v1.1.0
+[v1.1.0]: https://github.com/beyondstorage/go-service-cos/compare/v1.0.0...v1.1.0

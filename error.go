@@ -1,6 +1,6 @@
 package cos
 
-import "github.com/aos-dev/go-storage/v3/services"
+import "github.com/beyondstorage/go-storage/v4/services"
 
 var (
 	// ErrServerSideEncryptionCustomerKeyInvalid will be returned while server-side encryption customer key is invalid.
