@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v2.0.0] - 2021-05-24
+
+### Added
+
+- storage: Implement SSE support (#17)
+- services: implement GSP-47 & GSP-51 (#21)
+- storage: Implement multipart support (#23)
+
+### Changed
+
+- storage: Idempotent storager delete operation (#20)
+- *: Implement GSP-73 Organization rename (#24)
+
 ## [v1.1.0] - 2021-04-24
 
 ### Added
@@ -32,4 +45,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Implement cos services.
 
+[v2.0.0]: https://github.com/beyondstorage/go-service-cos/compare/v1.1.0...v2.0.0
 [v1.1.0]: https://github.com/beyondstorage/go-service-cos/compare/v1.0.0...v1.1.0
