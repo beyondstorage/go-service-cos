@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - storage: Idempotent storager delete operation (#20)
 - *: Implement GSP-73 Organization rename (#24)
 
+### Upgraded
+
+- build(deps): Bump cos-go-sdk to 0.7.25 (#22)
+
 ## [v1.1.0] - 2021-04-24
 
 ### Added
