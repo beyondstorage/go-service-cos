@@ -37,8 +37,12 @@ const (
 	pairServerSideEncryptionCustomerAlgorithm = "cos_server_side_encryption_customer_algorithm"
 	// ServerSideEncryptionCustomerKey specifies the customer-provided encryption key to encrypt/decrypt the source object. It must be a 32-byte AES-256 key.
 	pairServerSideEncryptionCustomerKey = "cos_server_side_encryption_customer_key"
+	// ServiceFeatures set service features
+	pairServiceFeatures = "cos_service_features"
 	// StorageClass
 	pairStorageClass = "cos_storage_class"
+	// StorageFeatures set storage features
+	pairStorageFeatures = "cos_storage_features"
 )
 
 // ObjectMetadata stores service metadata for object.
@@ -144,6 +148,16 @@ func WithServerSideEncryptionCustomerKey(v []byte) Pair {
 	}
 }
 
+// WithServiceFeatures will apply service_features value to Options.
+//
+// ServiceFeatures set service features
+func WithServiceFeatures(v ServiceFeatures) Pair {
+	return Pair{
+		Key:   pairServiceFeatures,
+		Value: v,
+	}
+}
+
 // WithStorageClass will apply storage_class value to Options.
 //
 // StorageClass
@@ -154,9 +168,31 @@ func WithStorageClass(v string) Pair {
 	}
 }
 
+// WithStorageFeatures will apply storage_features value to Options.
+//
+// StorageFeatures set storage features
+func WithStorageFeatures(v StorageFeatures) Pair {
+	return Pair{
+		Key:   pairStorageFeatures,
+		Value: v,
+	}
+}
+
 var (
 	_ Servicer = &Service{}
 )
+
+type ServiceFeatures struct {
+	LooseOperationAll    bool
+	LooseOperationCreate bool
+	LooseOperationDelete bool
+	LooseOperationGet    bool
+	LooseOperationList   bool
+
+	VirtualOperationAll bool
+
+	VirtualPairAll bool
+}
 
 // pairServiceNew is the parsed struct
 type pairServiceNew struct {
@@ -172,7 +208,8 @@ type pairServiceNew struct {
 	Endpoint               string
 	HasHTTPClientOptions   bool
 	HTTPClientOptions      *httpclient.Options
-	// Generated pairs
+	HasServiceFeatures     bool
+	ServiceFeatures        ServiceFeatures
 }
 
 // parsePairServiceNew will parse Pair slice into *pairServiceNew
@@ -209,7 +246,12 @@ func parsePairServiceNew(opts []Pair) (pairServiceNew, error) {
 			}
 			result.HasHTTPClientOptions = true
 			result.HTTPClientOptions = v.Value.(*httpclient.Options)
-			// Generated pairs
+		case pairServiceFeatures:
+			if result.HasServiceFeatures {
+				continue
+			}
+			result.HasServiceFeatures = true
+			result.ServiceFeatures = v.Value.(ServiceFeatures)
 		}
 	}
 	if !result.HasCredential {
@@ -229,13 +271,9 @@ type DefaultServicePairs struct {
 
 // pairServiceCreate is the parsed struct
 type pairServiceCreate struct {
-	pairs []Pair
-
-	// Required pairs
+	pairs       []Pair
 	HasLocation bool
 	Location    string
-	// Optional pairs
-	// Generated pairs
 }
 
 // parsePairServiceCreate will parse Pair slice into *pairServiceCreate
@@ -245,19 +283,33 @@ func (s *Service) parsePairServiceCreate(opts []Pair) (pairServiceCreate, error)
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
 		case "location":
+			if result.HasLocation {
+				continue
+			}
 			result.HasLocation = true
 			result.Location = v.Value.(string)
-		// Optional pairs
-		// Generated pairs
-		default:
-
 			continue
-
+		default:
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationCreate {
+			continue
+		}
+		return pairServiceCreate{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 	if !result.HasLocation {
 		return pairServiceCreate{}, services.PairRequiredError{Keys: []string{"location"}}
 	}
@@ -267,13 +319,9 @@ func (s *Service) parsePairServiceCreate(opts []Pair) (pairServiceCreate, error)
 
 // pairServiceDelete is the parsed struct
 type pairServiceDelete struct {
-	pairs []Pair
-
-	// Required pairs
+	pairs       []Pair
 	HasLocation bool
 	Location    string
-	// Optional pairs
-	// Generated pairs
 }
 
 // parsePairServiceDelete will parse Pair slice into *pairServiceDelete
@@ -283,19 +331,33 @@ func (s *Service) parsePairServiceDelete(opts []Pair) (pairServiceDelete, error)
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
 		case "location":
+			if result.HasLocation {
+				continue
+			}
 			result.HasLocation = true
 			result.Location = v.Value.(string)
-		// Optional pairs
-		// Generated pairs
-		default:
-
 			continue
-
+		default:
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationDelete {
+			continue
+		}
+		return pairServiceDelete{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 	if !result.HasLocation {
 		return pairServiceDelete{}, services.PairRequiredError{Keys: []string{"location"}}
 	}
@@ -305,13 +367,9 @@ func (s *Service) parsePairServiceDelete(opts []Pair) (pairServiceDelete, error)
 
 // pairServiceGet is the parsed struct
 type pairServiceGet struct {
-	pairs []Pair
-
-	// Required pairs
+	pairs       []Pair
 	HasLocation bool
 	Location    string
-	// Optional pairs
-	// Generated pairs
 }
 
 // parsePairServiceGet will parse Pair slice into *pairServiceGet
@@ -321,19 +379,33 @@ func (s *Service) parsePairServiceGet(opts []Pair) (pairServiceGet, error) {
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
 		case "location":
+			if result.HasLocation {
+				continue
+			}
 			result.HasLocation = true
 			result.Location = v.Value.(string)
-		// Optional pairs
-		// Generated pairs
-		default:
-
 			continue
-
+		default:
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationGet {
+			continue
+		}
+		return pairServiceGet{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 	if !result.HasLocation {
 		return pairServiceGet{}, services.PairRequiredError{Keys: []string{"location"}}
 	}
@@ -344,10 +416,6 @@ func (s *Service) parsePairServiceGet(opts []Pair) (pairServiceGet, error) {
 // pairServiceList is the parsed struct
 type pairServiceList struct {
 	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
-	// Generated pairs
 }
 
 // parsePairServiceList will parse Pair slice into *pairServiceList
@@ -357,16 +425,26 @@ func (s *Service) parsePairServiceList(opts []Pair) (pairServiceList, error) {
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
-		// Generated pairs
 		default:
-
-			continue
-
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationList {
+			continue
+		}
+		return pairServiceList{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
@@ -477,6 +555,25 @@ var (
 	_ Storager    = &Storage{}
 )
 
+type StorageFeatures struct {
+	LooseOperationAll               bool
+	LooseOperationCompleteMultipart bool
+	LooseOperationCreate            bool
+	LooseOperationCreateMultipart   bool
+	LooseOperationDelete            bool
+	LooseOperationList              bool
+	LooseOperationListMultipart     bool
+	LooseOperationMetadata          bool
+	LooseOperationRead              bool
+	LooseOperationStat              bool
+	LooseOperationWrite             bool
+	LooseOperationWriteMultipart    bool
+
+	VirtualOperationAll bool
+
+	VirtualPairAll bool
+}
+
 // pairStorageNew is the parsed struct
 type pairStorageNew struct {
 	pairs []Pair
@@ -489,11 +586,10 @@ type pairStorageNew struct {
 	// Optional pairs
 	HasDefaultStoragePairs bool
 	DefaultStoragePairs    DefaultStoragePairs
-	HasPairPolicy          bool
-	PairPolicy             PairPolicy
+	HasStorageFeatures     bool
+	StorageFeatures        StorageFeatures
 	HasWorkDir             bool
 	WorkDir                string
-	// Generated pairs
 }
 
 // parsePairStorageNew will parse Pair slice into *pairStorageNew
@@ -524,19 +620,18 @@ func parsePairStorageNew(opts []Pair) (pairStorageNew, error) {
 			}
 			result.HasDefaultStoragePairs = true
 			result.DefaultStoragePairs = v.Value.(DefaultStoragePairs)
-		case "pair_policy":
-			if result.HasPairPolicy {
+		case pairStorageFeatures:
+			if result.HasStorageFeatures {
 				continue
 			}
-			result.HasPairPolicy = true
-			result.PairPolicy = v.Value.(PairPolicy)
+			result.HasStorageFeatures = true
+			result.StorageFeatures = v.Value.(StorageFeatures)
 		case "work_dir":
 			if result.HasWorkDir {
 				continue
 			}
 			result.HasWorkDir = true
 			result.WorkDir = v.Value.(string)
-			// Generated pairs
 		}
 	}
 	if !result.HasLocation {
@@ -567,10 +662,6 @@ type DefaultStoragePairs struct {
 // pairStorageCompleteMultipart is the parsed struct
 type pairStorageCompleteMultipart struct {
 	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
-	// Generated pairs
 }
 
 // parsePairStorageCompleteMultipart will parse Pair slice into *pairStorageCompleteMultipart
@@ -580,31 +671,35 @@ func (s *Storage) parsePairStorageCompleteMultipart(opts []Pair) (pairStorageCom
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
-		// Generated pairs
 		default:
-
-			if s.pairPolicy.All || s.pairPolicy.CompleteMultipart {
-				return pairStorageCompleteMultipart{}, services.PairUnsupportedError{Pair: v}
-			}
-
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationCompleteMultipart {
+			continue
+		}
+		return pairStorageCompleteMultipart{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
 
 // pairStorageCreate is the parsed struct
 type pairStorageCreate struct {
-	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
+	pairs          []Pair
 	HasMultipartID bool
 	MultipartID    string
-	// Generated pairs
 }
 
 // parsePairStorageCreate will parse Pair slice into *pairStorageCreate
@@ -614,31 +709,40 @@ func (s *Storage) parsePairStorageCreate(opts []Pair) (pairStorageCreate, error)
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
 		case "multipart_id":
+			if result.HasMultipartID {
+				continue
+			}
 			result.HasMultipartID = true
 			result.MultipartID = v.Value.(string)
-		// Generated pairs
+			continue
 		default:
-
-			if s.pairPolicy.All || s.pairPolicy.Create {
-				return pairStorageCreate{}, services.PairUnsupportedError{Pair: v}
-			}
-
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationCreate {
+			continue
+		}
+		return pairStorageCreate{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
 
 // pairStorageCreateMultipart is the parsed struct
 type pairStorageCreateMultipart struct {
-	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
+	pairs                                    []Pair
 	HasContentType                           bool
 	ContentType                              string
 	HasServerSideEncryption                  bool
@@ -653,7 +757,6 @@ type pairStorageCreateMultipart struct {
 	ServerSideEncryptionCustomerKey          []byte
 	HasStorageClass                          bool
 	StorageClass                             string
-	// Generated pairs
 }
 
 // parsePairStorageCreateMultipart will parse Pair slice into *pairStorageCreateMultipart
@@ -663,52 +766,84 @@ func (s *Storage) parsePairStorageCreateMultipart(opts []Pair) (pairStorageCreat
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
 		case "content_type":
+			if result.HasContentType {
+				continue
+			}
 			result.HasContentType = true
 			result.ContentType = v.Value.(string)
+			continue
 		case pairServerSideEncryption:
+			if result.HasServerSideEncryption {
+				continue
+			}
 			result.HasServerSideEncryption = true
 			result.ServerSideEncryption = v.Value.(string)
+			continue
 		case pairServerSideEncryptionContext:
+			if result.HasServerSideEncryptionContext {
+				continue
+			}
 			result.HasServerSideEncryptionContext = true
 			result.ServerSideEncryptionContext = v.Value.(string)
+			continue
 		case pairServerSideEncryptionCosKmsKeyID:
+			if result.HasServerSideEncryptionCosKmsKeyID {
+				continue
+			}
 			result.HasServerSideEncryptionCosKmsKeyID = true
 			result.ServerSideEncryptionCosKmsKeyID = v.Value.(string)
+			continue
 		case pairServerSideEncryptionCustomerAlgorithm:
+			if result.HasServerSideEncryptionCustomerAlgorithm {
+				continue
+			}
 			result.HasServerSideEncryptionCustomerAlgorithm = true
 			result.ServerSideEncryptionCustomerAlgorithm = v.Value.(string)
+			continue
 		case pairServerSideEncryptionCustomerKey:
+			if result.HasServerSideEncryptionCustomerKey {
+				continue
+			}
 			result.HasServerSideEncryptionCustomerKey = true
 			result.ServerSideEncryptionCustomerKey = v.Value.([]byte)
+			continue
 		case pairStorageClass:
+			if result.HasStorageClass {
+				continue
+			}
 			result.HasStorageClass = true
 			result.StorageClass = v.Value.(string)
-		// Generated pairs
+			continue
 		default:
-
-			if s.pairPolicy.All || s.pairPolicy.CreateMultipart {
-				return pairStorageCreateMultipart{}, services.PairUnsupportedError{Pair: v}
-			}
-
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationCreateMultipart {
+			continue
+		}
+		return pairStorageCreateMultipart{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
 
 // pairStorageDelete is the parsed struct
 type pairStorageDelete struct {
-	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
+	pairs          []Pair
 	HasMultipartID bool
 	MultipartID    string
-	// Generated pairs
 }
 
 // parsePairStorageDelete will parse Pair slice into *pairStorageDelete
@@ -718,34 +853,42 @@ func (s *Storage) parsePairStorageDelete(opts []Pair) (pairStorageDelete, error)
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
 		case "multipart_id":
+			if result.HasMultipartID {
+				continue
+			}
 			result.HasMultipartID = true
 			result.MultipartID = v.Value.(string)
-		// Generated pairs
+			continue
 		default:
-
-			if s.pairPolicy.All || s.pairPolicy.Delete {
-				return pairStorageDelete{}, services.PairUnsupportedError{Pair: v}
-			}
-
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationDelete {
+			continue
+		}
+		return pairStorageDelete{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
 
 // pairStorageList is the parsed struct
 type pairStorageList struct {
-	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
+	pairs       []Pair
 	HasListMode bool
 	ListMode    ListMode
-	// Generated pairs
 }
 
 // parsePairStorageList will parse Pair slice into *pairStorageList
@@ -755,21 +898,33 @@ func (s *Storage) parsePairStorageList(opts []Pair) (pairStorageList, error) {
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
 		case "list_mode":
+			if result.HasListMode {
+				continue
+			}
 			result.HasListMode = true
 			result.ListMode = v.Value.(ListMode)
-		// Generated pairs
+			continue
 		default:
-
-			if s.pairPolicy.All || s.pairPolicy.List {
-				return pairStorageList{}, services.PairUnsupportedError{Pair: v}
-			}
-
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationList {
+			continue
+		}
+		return pairStorageList{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
@@ -777,10 +932,6 @@ func (s *Storage) parsePairStorageList(opts []Pair) (pairStorageList, error) {
 // pairStorageListMultipart is the parsed struct
 type pairStorageListMultipart struct {
 	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
-	// Generated pairs
 }
 
 // parsePairStorageListMultipart will parse Pair slice into *pairStorageListMultipart
@@ -790,18 +941,26 @@ func (s *Storage) parsePairStorageListMultipart(opts []Pair) (pairStorageListMul
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
-		// Generated pairs
 		default:
-
-			if s.pairPolicy.All || s.pairPolicy.ListMultipart {
-				return pairStorageListMultipart{}, services.PairUnsupportedError{Pair: v}
-			}
-
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationListMultipart {
+			continue
+		}
+		return pairStorageListMultipart{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
@@ -809,10 +968,6 @@ func (s *Storage) parsePairStorageListMultipart(opts []Pair) (pairStorageListMul
 // pairStorageMetadata is the parsed struct
 type pairStorageMetadata struct {
 	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
-	// Generated pairs
 }
 
 // parsePairStorageMetadata will parse Pair slice into *pairStorageMetadata
@@ -822,28 +977,33 @@ func (s *Storage) parsePairStorageMetadata(opts []Pair) (pairStorageMetadata, er
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
-		// Generated pairs
 		default:
-
-			if s.pairPolicy.All || s.pairPolicy.Metadata {
-				return pairStorageMetadata{}, services.PairUnsupportedError{Pair: v}
-			}
-
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationMetadata {
+			continue
+		}
+		return pairStorageMetadata{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
 
 // pairStorageRead is the parsed struct
 type pairStorageRead struct {
-	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
+	pairs                                    []Pair
 	HasIoCallback                            bool
 	IoCallback                               func([]byte)
 	HasOffset                                bool
@@ -854,7 +1014,6 @@ type pairStorageRead struct {
 	ServerSideEncryptionCustomerKey          []byte
 	HasSize                                  bool
 	Size                                     int64
-	// Generated pairs
 }
 
 // parsePairStorageRead will parse Pair slice into *pairStorageRead
@@ -864,50 +1023,74 @@ func (s *Storage) parsePairStorageRead(opts []Pair) (pairStorageRead, error) {
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
 		case "io_callback":
+			if result.HasIoCallback {
+				continue
+			}
 			result.HasIoCallback = true
 			result.IoCallback = v.Value.(func([]byte))
+			continue
 		case "offset":
+			if result.HasOffset {
+				continue
+			}
 			result.HasOffset = true
 			result.Offset = v.Value.(int64)
+			continue
 		case pairServerSideEncryptionCustomerAlgorithm:
+			if result.HasServerSideEncryptionCustomerAlgorithm {
+				continue
+			}
 			result.HasServerSideEncryptionCustomerAlgorithm = true
 			result.ServerSideEncryptionCustomerAlgorithm = v.Value.(string)
+			continue
 		case pairServerSideEncryptionCustomerKey:
+			if result.HasServerSideEncryptionCustomerKey {
+				continue
+			}
 			result.HasServerSideEncryptionCustomerKey = true
 			result.ServerSideEncryptionCustomerKey = v.Value.([]byte)
+			continue
 		case "size":
+			if result.HasSize {
+				continue
+			}
 			result.HasSize = true
 			result.Size = v.Value.(int64)
-		// Generated pairs
+			continue
 		default:
-
-			if s.pairPolicy.All || s.pairPolicy.Read {
-				return pairStorageRead{}, services.PairUnsupportedError{Pair: v}
-			}
-
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationRead {
+			continue
+		}
+		return pairStorageRead{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
 
 // pairStorageStat is the parsed struct
 type pairStorageStat struct {
-	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
+	pairs                                    []Pair
 	HasMultipartID                           bool
 	MultipartID                              string
 	HasServerSideEncryptionCustomerAlgorithm bool
 	ServerSideEncryptionCustomerAlgorithm    string
 	HasServerSideEncryptionCustomerKey       bool
 	ServerSideEncryptionCustomerKey          []byte
-	// Generated pairs
 }
 
 // parsePairStorageStat will parse Pair slice into *pairStorageStat
@@ -917,37 +1100,54 @@ func (s *Storage) parsePairStorageStat(opts []Pair) (pairStorageStat, error) {
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
 		case "multipart_id":
+			if result.HasMultipartID {
+				continue
+			}
 			result.HasMultipartID = true
 			result.MultipartID = v.Value.(string)
+			continue
 		case pairServerSideEncryptionCustomerAlgorithm:
+			if result.HasServerSideEncryptionCustomerAlgorithm {
+				continue
+			}
 			result.HasServerSideEncryptionCustomerAlgorithm = true
 			result.ServerSideEncryptionCustomerAlgorithm = v.Value.(string)
+			continue
 		case pairServerSideEncryptionCustomerKey:
+			if result.HasServerSideEncryptionCustomerKey {
+				continue
+			}
 			result.HasServerSideEncryptionCustomerKey = true
 			result.ServerSideEncryptionCustomerKey = v.Value.([]byte)
-		// Generated pairs
+			continue
 		default:
-
-			if s.pairPolicy.All || s.pairPolicy.Stat {
-				return pairStorageStat{}, services.PairUnsupportedError{Pair: v}
-			}
-
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationStat {
+			continue
+		}
+		return pairStorageStat{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
 
 // pairStorageWrite is the parsed struct
 type pairStorageWrite struct {
-	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
+	pairs                                    []Pair
 	HasContentMd5                            bool
 	ContentMd5                               string
 	HasContentType                           bool
@@ -966,7 +1166,6 @@ type pairStorageWrite struct {
 	ServerSideEncryptionCustomerKey          []byte
 	HasStorageClass                          bool
 	StorageClass                             string
-	// Generated pairs
 }
 
 // parsePairStorageWrite will parse Pair slice into *pairStorageWrite
@@ -976,58 +1175,98 @@ func (s *Storage) parsePairStorageWrite(opts []Pair) (pairStorageWrite, error) {
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
 		case "content_md5":
+			if result.HasContentMd5 {
+				continue
+			}
 			result.HasContentMd5 = true
 			result.ContentMd5 = v.Value.(string)
+			continue
 		case "content_type":
+			if result.HasContentType {
+				continue
+			}
 			result.HasContentType = true
 			result.ContentType = v.Value.(string)
+			continue
 		case "io_callback":
+			if result.HasIoCallback {
+				continue
+			}
 			result.HasIoCallback = true
 			result.IoCallback = v.Value.(func([]byte))
+			continue
 		case pairServerSideEncryption:
+			if result.HasServerSideEncryption {
+				continue
+			}
 			result.HasServerSideEncryption = true
 			result.ServerSideEncryption = v.Value.(string)
+			continue
 		case pairServerSideEncryptionContext:
+			if result.HasServerSideEncryptionContext {
+				continue
+			}
 			result.HasServerSideEncryptionContext = true
 			result.ServerSideEncryptionContext = v.Value.(string)
+			continue
 		case pairServerSideEncryptionCosKmsKeyID:
+			if result.HasServerSideEncryptionCosKmsKeyID {
+				continue
+			}
 			result.HasServerSideEncryptionCosKmsKeyID = true
 			result.ServerSideEncryptionCosKmsKeyID = v.Value.(string)
+			continue
 		case pairServerSideEncryptionCustomerAlgorithm:
+			if result.HasServerSideEncryptionCustomerAlgorithm {
+				continue
+			}
 			result.HasServerSideEncryptionCustomerAlgorithm = true
 			result.ServerSideEncryptionCustomerAlgorithm = v.Value.(string)
+			continue
 		case pairServerSideEncryptionCustomerKey:
+			if result.HasServerSideEncryptionCustomerKey {
+				continue
+			}
 			result.HasServerSideEncryptionCustomerKey = true
 			result.ServerSideEncryptionCustomerKey = v.Value.([]byte)
+			continue
 		case pairStorageClass:
+			if result.HasStorageClass {
+				continue
+			}
 			result.HasStorageClass = true
 			result.StorageClass = v.Value.(string)
-		// Generated pairs
+			continue
 		default:
-
-			if s.pairPolicy.All || s.pairPolicy.Write {
-				return pairStorageWrite{}, services.PairUnsupportedError{Pair: v}
-			}
-
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationWrite {
+			continue
+		}
+		return pairStorageWrite{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
 
 // pairStorageWriteMultipart is the parsed struct
 type pairStorageWriteMultipart struct {
-	pairs []Pair
-
-	// Required pairs
-	// Optional pairs
+	pairs         []Pair
 	HasContentMd5 bool
 	ContentMd5    string
-	// Generated pairs
 }
 
 // parsePairStorageWriteMultipart will parse Pair slice into *pairStorageWriteMultipart
@@ -1037,21 +1276,33 @@ func (s *Storage) parsePairStorageWriteMultipart(opts []Pair) (pairStorageWriteM
 	}
 
 	for _, v := range opts {
+		// isUnsupportedPair records whether current pair is unsupported.
+		isUnsupportedPair := false
+
 		switch v.Key {
-		// Required pairs
-		// Optional pairs
 		case "content_md5":
+			if result.HasContentMd5 {
+				continue
+			}
 			result.HasContentMd5 = true
 			result.ContentMd5 = v.Value.(string)
-		// Generated pairs
+			continue
 		default:
-
-			if s.pairPolicy.All || s.pairPolicy.WriteMultipart {
-				return pairStorageWriteMultipart{}, services.PairUnsupportedError{Pair: v}
-			}
-
+			isUnsupportedPair = true
 		}
+
+		if !isUnsupportedPair {
+			continue
+		}
+
+		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
+		if s.features.LooseOperationAll || s.features.LooseOperationWriteMultipart {
+			continue
+		}
+		return pairStorageWriteMultipart{}, services.PairUnsupportedError{Pair: v}
 	}
+
+	// Check required pairs.
 
 	return result, nil
 }
