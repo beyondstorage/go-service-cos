@@ -99,7 +99,7 @@ func (s *Storage) createDir(ctx context.Context, path string, opt pairStorageCre
 		}
 	}
 
-	_, err = s.object.Put(ctx, rp, iowrap.SizedReadSeekCloser(nil, 0), putOptions)
+	_, err = s.object.Put(ctx, rp, io.LimitReader(nil, 0), putOptions)
 	if err != nil {
 		return
 	}
