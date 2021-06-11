@@ -46,6 +46,7 @@ type Storage struct {
 	features     StorageFeatures
 
 	typ.UnimplementedStorager
+	typ.UnimplementedDirer
 	typ.UnimplementedMultiparter
 }
 

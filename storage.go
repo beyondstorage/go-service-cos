@@ -36,18 +36,79 @@ func (s *Storage) completeMultipart(ctx context.Context, o *Object, parts []*Par
 }
 
 func (s *Storage) create(path string, opt pairStorageCreate) (o *Object) {
+	rp := s.getAbsPath(path)
+
 	// Handle create multipart object separately.
 	if opt.HasMultipartID {
 		o = s.newObject(true)
 		o.Mode = ModePart
 		o.SetMultipartID(opt.MultipartID)
 	} else {
-		o = s.newObject(false)
-		o.Mode = ModeRead
+		if opt.HasObjectMode && opt.ObjectMode.IsDir() {
+			rp += "/"
+			o = s.newObject(true)
+			o.Mode = ModeDir
+		} else {
+			o = s.newObject(false)
+			o.Mode = ModeRead
+		}
 	}
-	o.ID = s.getAbsPath(path)
+
+	o.ID = rp
 	o.Path = path
 	return o
+}
+
+func (s *Storage) createDir(ctx context.Context, path string, opt pairStorageCreateDir) (o *Object, err error) {
+	rp := s.getAbsPath(path)
+
+	// Add `/` at the end of `path` to simulate a directory.
+	// ref: https://cloud.tencent.com/document/product/436/13324
+	rp += "/"
+
+	putOptions := &cos.ObjectPutOptions{
+		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
+			ContentLength: 0,
+		},
+	}
+	if opt.HasContentMd5 {
+		putOptions.ContentMD5 = opt.ContentMd5
+	}
+	if opt.HasStorageClass {
+		putOptions.XCosStorageClass = opt.StorageClass
+	}
+	// SSE-C
+	if opt.HasServerSideEncryptionCustomerAlgorithm {
+		putOptions.XCosSSECustomerAglo, putOptions.XCosSSECustomerKey, putOptions.XCosSSECustomerKeyMD5, err = calculateEncryptionHeaders(opt.ServerSideEncryptionCustomerAlgorithm, opt.ServerSideEncryptionCustomerKey)
+		if err != nil {
+			return
+		}
+	}
+	// SSE-COS or SSE-KMS
+	if opt.HasServerSideEncryption {
+		putOptions.XCosServerSideEncryption = opt.ServerSideEncryption
+		if opt.ServerSideEncryption == ServerSideEncryptionCosKms {
+			// FIXME: we can remove the usage of `XOptionHeader` when cos' SDK supports SSE-KMS
+			putOptions.XOptionHeader = &http.Header{}
+			if opt.HasServerSideEncryptionCosKmsKeyID {
+				putOptions.XOptionHeader.Set(serverSideEncryptionCosKmsKeyIdHeader, opt.ServerSideEncryptionCosKmsKeyID)
+			}
+			if opt.HasServerSideEncryptionContext {
+				putOptions.XOptionHeader.Set(serverSideEncryptionContextHeader, opt.ServerSideEncryptionContext)
+			}
+		}
+	}
+
+	_, err = s.object.Put(ctx, rp, nil, putOptions)
+	if err != nil {
+		return
+	}
+
+	o = s.newObject(true)
+	o.ID = rp
+	o.Path = path
+	o.Mode |= ModeDir
+	return
 }
 
 func (s *Storage) createMultipart(ctx context.Context, path string, opt pairStorageCreateMultipart) (o *Object, err error) {
@@ -113,6 +174,10 @@ func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete
 			return err
 		}
 		return nil
+	}
+
+	if opt.HasObjectMode && opt.ObjectMode.IsDir() {
+		rp += "/"
 	}
 
 	_, err = s.object.Delete(ctx, rp)
@@ -343,6 +408,10 @@ func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o
 		return o, nil
 	}
 
+	if opt.HasObjectMode && opt.ObjectMode.IsDir() {
+		rp += "/"
+	}
+
 	headOptions := &cos.ObjectHeadOptions{}
 	// SSE-C
 	if opt.HasServerSideEncryptionCustomerAlgorithm {
@@ -359,7 +428,11 @@ func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o
 	o = s.newObject(true)
 	o.ID = rp
 	o.Path = path
-	o.Mode |= ModeRead
+	if opt.HasObjectMode && opt.ObjectMode.IsDir() {
+		o.Mode |= ModeDir
+	} else {
+		o.Mode |= ModeRead
+	}
 
 	o.SetContentLength(output.ContentLength)
 
