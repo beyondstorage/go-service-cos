@@ -755,8 +755,6 @@ func (s *Storage) parsePairStorageCreate(opts []Pair) (pairStorageCreate, error)
 // pairStorageCreateDir is the parsed struct
 type pairStorageCreateDir struct {
 	pairs                                    []Pair
-	HasContentMd5                            bool
-	ContentMd5                               string
 	HasServerSideEncryption                  bool
 	ServerSideEncryption                     string
 	HasServerSideEncryptionContext           bool
@@ -782,13 +780,6 @@ func (s *Storage) parsePairStorageCreateDir(opts []Pair) (pairStorageCreateDir, 
 		isUnsupportedPair := false
 
 		switch v.Key {
-		case "content_md5":
-			if result.HasContentMd5 {
-				continue
-			}
-			result.HasContentMd5 = true
-			result.ContentMd5 = v.Value.(string)
-			continue
 		case pairServerSideEncryption:
 			if result.HasServerSideEncryption {
 				continue

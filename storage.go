@@ -15,6 +15,8 @@ import (
 )
 
 func (s *Storage) completeMultipart(ctx context.Context, o *Object, parts []*Part, opt pairStorageCompleteMultipart) (err error) {
+	// Users should make sure the numbers of the uploaded parts are continuous and sorted in ascending order.
+	// ref: https://intl.cloud.tencent.com/document/product/436/7742
 	upload := &cos.CompleteMultipartUploadOptions{}
 	for _, v := range parts {
 		upload.Parts = append(upload.Parts, cos.Object{
@@ -70,9 +72,6 @@ func (s *Storage) createDir(ctx context.Context, path string, opt pairStorageCre
 		ObjectPutHeaderOptions: &cos.ObjectPutHeaderOptions{
 			ContentLength: 0,
 		},
-	}
-	if opt.HasContentMd5 {
-		putOptions.ContentMD5 = opt.ContentMd5
 	}
 	if opt.HasStorageClass {
 		putOptions.XCosStorageClass = opt.StorageClass

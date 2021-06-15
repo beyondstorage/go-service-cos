@@ -26,7 +26,7 @@ optional = ["storage_features", "default_storage_pairs", "work_dir"]
 optional = ["multipart_id", "object_mode"]
 
 [namespace.storage.op.create_dir]
-optional = ["content_md5", "storage_class", "server_side_encryption_customer_algorithm", "server_side_encryption_customer_key", "server_side_encryption", "server_side_encryption_cos_kms_key_id", "server_side_encryption_context"]
+optional = ["storage_class", "server_side_encryption_customer_algorithm", "server_side_encryption_customer_key", "server_side_encryption", "server_side_encryption_cos_kms_key_id", "server_side_encryption_context"]
 
 [namespace.storage.op.delete]
 optional = ["multipart_id", "object_mode"]

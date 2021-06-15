@@ -1,8 +1,8 @@
 github.com/QcloudApi/qcloud_sign_golang v0.0.0-20141224014652-e4130a326409/go.mod h1:1pk82RBxDY/JZnPQrtqHlUFfCctgdorsd9M06fMynOM=
 github.com/Xuanwo/templateutils v0.1.0 h1:WpkWOqQtIQ2vAIpJLa727DdN8WtxhUkkbDGa6UhntJY=
 github.com/Xuanwo/templateutils v0.1.0/go.mod h1:OdE0DJ+CJxDBq6psX5DPV+gOZi8bhuHuVUpPCG++Wb8=
-github.com/beyondstorage/go-integration-test/v4 v4.1.0 h1:/cKM5uC+tW1mYAM/FTQlMq3EZMAb8hBm8gL4ZHk9InQ=
-github.com/beyondstorage/go-integration-test/v4 v4.1.0/go.mod h1:W6Dhve1tbEpWAR1WSRuJl4UYpMNpM2QTAcb1dCpuEUI=
+github.com/beyondstorage/go-integration-test/v4 v4.1.1-0.20210611113412-00c3af5fe4e1 h1:zqtr8joIi7Nlu7uPNDuk1MrEo1zC28HAKVSBxaod5x4=
+github.com/beyondstorage/go-integration-test/v4 v4.1.1-0.20210611113412-00c3af5fe4e1/go.mod h1:W6Dhve1tbEpWAR1WSRuJl4UYpMNpM2QTAcb1dCpuEUI=
 github.com/beyondstorage/go-storage/v4 v4.1.0 h1:O5SuSoTvs0KeXaZ/dYhpURlki6PjTNPyIzsJMY9sJWw=
 github.com/beyondstorage/go-storage/v4 v4.1.0/go.mod h1:dK5DFnvKQI70bfpM1MLU9QqDYB12Z/dFV5sUnbJ/AoU=
 github.com/beyondstorage/specs/go v0.0.0-20210608070420-9185b588aa58 h1:AvxsyR0bSSBi90WtYEMdAkM4Sm+Xxr7JVGXAQVVfeOo=
