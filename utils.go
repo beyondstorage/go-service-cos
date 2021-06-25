@@ -332,3 +332,9 @@ const (
 	// multipartSizeMinimum is the minimum size for each part, 1MB.
 	multipartSizeMinimum = 1024 * 1024
 )
+
+const (
+	// WriteSizeMaximum is the maximum size for write operation, 5GB.
+	// ref: https://cloud.tencent.com/document/product/436/7749
+	writeSizeMaximum = 5 * 1024 * 1024 * 1024
+)
