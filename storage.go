@@ -2,12 +2,14 @@ package cos
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
 
 	"github.com/tencentyun/cos-go-sdk-v5"
 
+	ps "github.com/beyondstorage/go-storage/v4/pairs"
 	"github.com/beyondstorage/go-storage/v4/pkg/headers"
 	"github.com/beyondstorage/go-storage/v4/pkg/iowrap"
 	"github.com/beyondstorage/go-storage/v4/services"
@@ -47,6 +49,10 @@ func (s *Storage) create(path string, opt pairStorageCreate) (o *Object) {
 		o.SetMultipartID(opt.MultipartID)
 	} else {
 		if opt.HasObjectMode && opt.ObjectMode.IsDir() {
+			if !s.features.VirtualDir {
+				return
+			}
+
 			rp += "/"
 			o = s.newObject(true)
 			o.Mode = ModeDir
@@ -62,6 +68,11 @@ func (s *Storage) create(path string, opt pairStorageCreate) (o *Object) {
 }
 
 func (s *Storage) createDir(ctx context.Context, path string, opt pairStorageCreateDir) (o *Object, err error) {
+	if !s.features.VirtualDir {
+		err = NewOperationNotImplementedError("create_dir")
+		return
+	}
+
 	rp := s.getAbsPath(path)
 
 	// Add `/` at the end of `path` to simulate a directory.
@@ -75,27 +86,6 @@ func (s *Storage) createDir(ctx context.Context, path string, opt pairStorageCre
 	}
 	if opt.HasStorageClass {
 		putOptions.XCosStorageClass = opt.StorageClass
-	}
-	// SSE-C
-	if opt.HasServerSideEncryptionCustomerAlgorithm {
-		putOptions.XCosSSECustomerAglo, putOptions.XCosSSECustomerKey, putOptions.XCosSSECustomerKeyMD5, err = calculateEncryptionHeaders(opt.ServerSideEncryptionCustomerAlgorithm, opt.ServerSideEncryptionCustomerKey)
-		if err != nil {
-			return
-		}
-	}
-	// SSE-COS or SSE-KMS
-	if opt.HasServerSideEncryption {
-		putOptions.XCosServerSideEncryption = opt.ServerSideEncryption
-		if opt.ServerSideEncryption == ServerSideEncryptionCosKms {
-			// FIXME: we can remove the usage of `XOptionHeader` when cos' SDK supports SSE-KMS
-			putOptions.XOptionHeader = &http.Header{}
-			if opt.HasServerSideEncryptionCosKmsKeyID {
-				putOptions.XOptionHeader.Set(serverSideEncryptionCosKmsKeyIdHeader, opt.ServerSideEncryptionCosKmsKeyID)
-			}
-			if opt.HasServerSideEncryptionContext {
-				putOptions.XOptionHeader.Set(serverSideEncryptionContextHeader, opt.ServerSideEncryptionContext)
-			}
-		}
 	}
 
 	_, err = s.object.Put(ctx, rp, io.LimitReader(nil, 0), putOptions)
@@ -152,10 +142,6 @@ func (s *Storage) createMultipart(ctx context.Context, path string, opt pairStor
 	o.Path = path
 	o.Mode |= ModePart
 	o.SetMultipartID(output.UploadID)
-	// set multipart restriction
-	o.SetMultipartNumberMaximum(multipartNumberMaximum)
-	o.SetMultipartSizeMaximum(multipartSizeMaximum)
-	o.SetMultipartSizeMinimum(multipartSizeMinimum)
 	return o, nil
 }
 
@@ -176,6 +162,11 @@ func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete
 	}
 
 	if opt.HasObjectMode && opt.ObjectMode.IsDir() {
+		if !s.features.VirtualDir {
+			err = services.PairUnsupportedError{Pair: ps.WithObjectMode(opt.ObjectMode)}
+			return
+		}
+
 		rp += "/"
 	}
 
@@ -229,6 +220,12 @@ func (s *Storage) metadata(opt pairStorageMetadata) (meta *StorageMeta) {
 	meta = NewStorageMeta()
 	meta.Name = s.name
 	meta.WorkDir = s.workDir
+	// set write restriction
+	meta.SetWriteSizeMaximum(writeSizeMaximum)
+	// set multipart restrictions
+	meta.SetMultipartNumberMaximum(multipartNumberMaximum)
+	meta.SetMultipartSizeMaximum(multipartSizeMaximum)
+	meta.SetMultipartSizeMinimum(multipartSizeMinimum)
 	return
 }
 
@@ -408,6 +405,11 @@ func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o
 	}
 
 	if opt.HasObjectMode && opt.ObjectMode.IsDir() {
+		if !s.features.VirtualDir {
+			err = services.PairUnsupportedError{Pair: ps.WithObjectMode(opt.ObjectMode)}
+			return
+		}
+
 		rp += "/"
 	}
 
@@ -456,7 +458,7 @@ func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o
 		o.SetEtag(v)
 	}
 
-	var sm ObjectMetadata
+	var sm ObjectSystemMetadata
 	if v := output.Header.Get(storageClassHeader); v != "" {
 		sm.StorageClass = v
 	}
@@ -472,12 +474,17 @@ func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o
 	if v := output.Header.Get(serverSideEncryptionCustomerKeyMd5Header); v != "" {
 		sm.ServerSideEncryptionCustomerKeyMd5 = v
 	}
-	o.SetServiceMetadata(sm)
+	o.SetSystemMetadata(sm)
 
 	return o, nil
 }
 
 func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int64, opt pairStorageWrite) (n int64, err error) {
+	if size > writeSizeMaximum {
+		err = fmt.Errorf("size limit exceeded: %w", services.ErrRestrictionDissatisfied)
+		return
+	}
+
 	if opt.HasIoCallback {
 		r = iowrap.CallbackReader(r, opt.IoCallback)
 	}
@@ -528,6 +535,15 @@ func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int6
 }
 
 func (s *Storage) writeMultipart(ctx context.Context, o *Object, r io.Reader, size int64, index int, opt pairStorageWriteMultipart) (n int64, part *Part, err error) {
+	if size > multipartSizeMaximum {
+		err = fmt.Errorf("size limit exceeded: %w", services.ErrRestrictionDissatisfied)
+		return
+	}
+	if index < 0 || index >= multipartNumberMaximum {
+		err = fmt.Errorf("multipart number limit exceeded: %w", services.ErrRestrictionDissatisfied)
+		return
+	}
+
 	input := &cos.ObjectUploadPartOptions{
 		ContentLength: size,
 	}

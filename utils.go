@@ -267,11 +267,11 @@ func (s *Storage) formatFileObject(v cos.Object) (o *typ.Object, err error) {
 		o.SetLastModified(t)
 	}
 
-	var sm ObjectMetadata
+	var sm ObjectSystemMetadata
 	if value := v.StorageClass; value != "" {
 		sm.StorageClass = value
 	}
-	o.SetServiceMetadata(sm)
+	o.SetSystemMetadata(sm)
 
 	return o, nil
 }
@@ -331,4 +331,10 @@ const (
 	multipartSizeMaximum = 5 * 1024 * 1024 * 1024
 	// multipartSizeMinimum is the minimum size for each part, 1MB.
 	multipartSizeMinimum = 1024 * 1024
+)
+
+const (
+	// WriteSizeMaximum is the maximum size for write operation, 5GB.
+	// ref: https://cloud.tencent.com/document/product/436/7749
+	writeSizeMaximum = 5 * 1024 * 1024 * 1024
 )
