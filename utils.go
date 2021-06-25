@@ -267,11 +267,11 @@ func (s *Storage) formatFileObject(v cos.Object) (o *typ.Object, err error) {
 		o.SetLastModified(t)
 	}
 
-	var sm ObjectMetadata
+	var sm ObjectSystemMetadata
 	if value := v.StorageClass; value != "" {
 		sm.StorageClass = value
 	}
-	o.SetServiceMetadata(sm)
+	o.SetSystemMetadata(sm)
 
 	return o, nil
 }
