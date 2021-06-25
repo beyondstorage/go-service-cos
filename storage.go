@@ -8,6 +8,7 @@ import (
 
 	"github.com/tencentyun/cos-go-sdk-v5"
 
+	ps "github.com/beyondstorage/go-storage/v4/pairs"
 	"github.com/beyondstorage/go-storage/v4/pkg/headers"
 	"github.com/beyondstorage/go-storage/v4/pkg/iowrap"
 	"github.com/beyondstorage/go-storage/v4/services"
@@ -47,6 +48,10 @@ func (s *Storage) create(path string, opt pairStorageCreate) (o *Object) {
 		o.SetMultipartID(opt.MultipartID)
 	} else {
 		if opt.HasObjectMode && opt.ObjectMode.IsDir() {
+			if !s.features.VirtualDir {
+				return
+			}
+
 			rp += "/"
 			o = s.newObject(true)
 			o.Mode = ModeDir
@@ -62,6 +67,11 @@ func (s *Storage) create(path string, opt pairStorageCreate) (o *Object) {
 }
 
 func (s *Storage) createDir(ctx context.Context, path string, opt pairStorageCreateDir) (o *Object, err error) {
+	if !s.features.VirtualDir {
+		err = NewOperationNotImplementedError("create_dir")
+		return
+	}
+
 	rp := s.getAbsPath(path)
 
 	// Add `/` at the end of `path` to simulate a directory.
@@ -75,27 +85,6 @@ func (s *Storage) createDir(ctx context.Context, path string, opt pairStorageCre
 	}
 	if opt.HasStorageClass {
 		putOptions.XCosStorageClass = opt.StorageClass
-	}
-	// SSE-C
-	if opt.HasServerSideEncryptionCustomerAlgorithm {
-		putOptions.XCosSSECustomerAglo, putOptions.XCosSSECustomerKey, putOptions.XCosSSECustomerKeyMD5, err = calculateEncryptionHeaders(opt.ServerSideEncryptionCustomerAlgorithm, opt.ServerSideEncryptionCustomerKey)
-		if err != nil {
-			return
-		}
-	}
-	// SSE-COS or SSE-KMS
-	if opt.HasServerSideEncryption {
-		putOptions.XCosServerSideEncryption = opt.ServerSideEncryption
-		if opt.ServerSideEncryption == ServerSideEncryptionCosKms {
-			// FIXME: we can remove the usage of `XOptionHeader` when cos' SDK supports SSE-KMS
-			putOptions.XOptionHeader = &http.Header{}
-			if opt.HasServerSideEncryptionCosKmsKeyID {
-				putOptions.XOptionHeader.Set(serverSideEncryptionCosKmsKeyIdHeader, opt.ServerSideEncryptionCosKmsKeyID)
-			}
-			if opt.HasServerSideEncryptionContext {
-				putOptions.XOptionHeader.Set(serverSideEncryptionContextHeader, opt.ServerSideEncryptionContext)
-			}
-		}
 	}
 
 	_, err = s.object.Put(ctx, rp, io.LimitReader(nil, 0), putOptions)
@@ -176,6 +165,11 @@ func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete
 	}
 
 	if opt.HasObjectMode && opt.ObjectMode.IsDir() {
+		if !s.features.VirtualDir {
+			err = services.PairUnsupportedError{Pair: ps.WithObjectMode(opt.ObjectMode)}
+			return
+		}
+
 		rp += "/"
 	}
 
@@ -408,6 +402,11 @@ func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o
 	}
 
 	if opt.HasObjectMode && opt.ObjectMode.IsDir() {
+		if !s.features.VirtualDir {
+			err = services.PairUnsupportedError{Pair: ps.WithObjectMode(opt.ObjectMode)}
+			return
+		}
+
 		rp += "/"
 	}
 

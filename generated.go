@@ -21,31 +21,9 @@ var _ httpclient.Options
 // Type is the type for cos
 const Type = "cos"
 
-// Service available pairs.
-const (
-	// DefaultServicePairs set default pairs for service actions
-	pairDefaultServicePairs = "cos_default_service_pairs"
-	// DefaultStoragePairs set default pairs for storager actions
-	pairDefaultStoragePairs = "cos_default_storage_pairs"
-	// ServerSideEncryption the server-side encryption algorithm used when storing this object. It can be `AES-256` for SSE-COS, and `cos/kms` for SSE-KMS.
-	pairServerSideEncryption = "cos_server_side_encryption"
-	// ServerSideEncryptionContext specifies the COS KMS Encryption Context to use for object encryption. The value of this header is a base64-encoded UTF-8 string holding JSON with the encryption context key-value pairs.
-	pairServerSideEncryptionContext = "cos_server_side_encryption_context"
-	// ServerSideEncryptionCosKmsKeyID specifies the COS KMS key ID to use for object encryption.
-	pairServerSideEncryptionCosKmsKeyID = "cos_server_side_encryption_cos_kms_key_id"
-	// ServerSideEncryptionCustomerAlgorithm specifies the algorithm to use to when encrypting the object. Now only `AES256` is supported.
-	pairServerSideEncryptionCustomerAlgorithm = "cos_server_side_encryption_customer_algorithm"
-	// ServerSideEncryptionCustomerKey specifies the customer-provided encryption key to encrypt/decrypt the source object. It must be a 32-byte AES-256 key.
-	pairServerSideEncryptionCustomerKey = "cos_server_side_encryption_customer_key"
-	// ServiceFeatures set service features
-	pairServiceFeatures = "cos_service_features"
-	// StorageClass
-	pairStorageClass = "cos_storage_class"
-	// StorageFeatures set storage features
-	pairStorageFeatures = "cos_storage_features"
-)
-
 // ObjectMetadata stores service metadata for object.
+//
+// Deprecated: Use ObjectSystemMetadata instead.
 type ObjectMetadata struct {
 	// ServerSideEncryption
 	ServerSideEncryption string
@@ -63,6 +41,8 @@ type ObjectMetadata struct {
 //
 // - This function should not be called by service implementer.
 // - The returning ObjectMetadata is read only and should not be modified.
+//
+// Deprecated: Use GetObjectSystemMetadata instead.
 func GetObjectMetadata(o *Object) ObjectMetadata {
 	om, ok := o.GetServiceMetadata()
 	if ok {
@@ -74,8 +54,65 @@ func GetObjectMetadata(o *Object) ObjectMetadata {
 // setObjectMetadata will set ObjectMetadata into Object.
 //
 // - This function should only be called once, please make sure all data has been written before set.
+//
+// Deprecated: Use setObjectSystemMetadata instead.
 func setObjectMetadata(o *Object, om ObjectMetadata) {
 	o.SetServiceMetadata(om)
+}
+
+// ObjectSystemMetadata stores system metadata for object.
+type ObjectSystemMetadata struct {
+	// ServerSideEncryption
+	ServerSideEncryption string
+	// ServerSideEncryptionCosKmsKeyID
+	ServerSideEncryptionCosKmsKeyID string
+	// ServerSideEncryptionCustomerAlgorithm
+	ServerSideEncryptionCustomerAlgorithm string
+	// ServerSideEncryptionCustomerKeyMd5
+	ServerSideEncryptionCustomerKeyMd5 string
+	// StorageClass
+	StorageClass string
+}
+
+// GetObjectSystemMetadata will get ObjectSystemMetadata from Object.
+//
+// - This function should not be called by service implementer.
+// - The returning ObjectServiceMetadata is read only and should not be modified.
+func GetObjectSystemMetadata(o *Object) ObjectSystemMetadata {
+	sm, ok := o.GetSystemMetadata()
+	if ok {
+		return sm.(ObjectSystemMetadata)
+	}
+	return ObjectSystemMetadata{}
+}
+
+// setObjectSystemMetadata will set ObjectSystemMetadata into Object.
+//
+// - This function should only be called once, please make sure all data has been written before set.
+func setObjectSystemMetadata(o *Object, sm ObjectSystemMetadata) {
+	o.SetSystemMetadata(sm)
+}
+
+// StorageSystemMetadata stores system metadata for storage meta.
+type StorageSystemMetadata struct {
+}
+
+// GetStorageSystemMetadata will get SystemMetadata from StorageMeta.
+//
+// - The returning StorageSystemMetadata is read only and should not be modified.
+func GetStorageSystemMetadata(s *StorageMeta) StorageSystemMetadata {
+	sm, ok := s.GetSystemMetadata()
+	if ok {
+		return sm.(StorageSystemMetadata)
+	}
+	return StorageSystemMetadata{}
+}
+
+// setStorageSystemMetadata will set SystemMetadata into StorageMeta.
+//
+// - This function should only be called once, please make sure all data has been written before set.
+func setStorageSystemMetadata(s *StorageMeta, sm StorageSystemMetadata) {
+	s.SetSystemMetadata(sm)
 }
 
 // WithDefaultServicePairs will apply default_service_pairs value to Options.
@@ -83,7 +120,7 @@ func setObjectMetadata(o *Object, om ObjectMetadata) {
 // DefaultServicePairs set default pairs for service actions
 func WithDefaultServicePairs(v DefaultServicePairs) Pair {
 	return Pair{
-		Key:   pairDefaultServicePairs,
+		Key:   "default_service_pairs",
 		Value: v,
 	}
 }
@@ -93,7 +130,7 @@ func WithDefaultServicePairs(v DefaultServicePairs) Pair {
 // DefaultStoragePairs set default pairs for storager actions
 func WithDefaultStoragePairs(v DefaultStoragePairs) Pair {
 	return Pair{
-		Key:   pairDefaultStoragePairs,
+		Key:   "default_storage_pairs",
 		Value: v,
 	}
 }
@@ -103,7 +140,7 @@ func WithDefaultStoragePairs(v DefaultStoragePairs) Pair {
 // ServerSideEncryption the server-side encryption algorithm used when storing this object. It can be `AES-256` for SSE-COS, and `cos/kms` for SSE-KMS.
 func WithServerSideEncryption(v string) Pair {
 	return Pair{
-		Key:   pairServerSideEncryption,
+		Key:   "server_side_encryption",
 		Value: v,
 	}
 }
@@ -113,7 +150,7 @@ func WithServerSideEncryption(v string) Pair {
 // ServerSideEncryptionContext specifies the COS KMS Encryption Context to use for object encryption. The value of this header is a base64-encoded UTF-8 string holding JSON with the encryption context key-value pairs.
 func WithServerSideEncryptionContext(v string) Pair {
 	return Pair{
-		Key:   pairServerSideEncryptionContext,
+		Key:   "server_side_encryption_context",
 		Value: v,
 	}
 }
@@ -123,7 +160,7 @@ func WithServerSideEncryptionContext(v string) Pair {
 // ServerSideEncryptionCosKmsKeyID specifies the COS KMS key ID to use for object encryption.
 func WithServerSideEncryptionCosKmsKeyID(v string) Pair {
 	return Pair{
-		Key:   pairServerSideEncryptionCosKmsKeyID,
+		Key:   "server_side_encryption_cos_kms_key_id",
 		Value: v,
 	}
 }
@@ -133,7 +170,7 @@ func WithServerSideEncryptionCosKmsKeyID(v string) Pair {
 // ServerSideEncryptionCustomerAlgorithm specifies the algorithm to use to when encrypting the object. Now only `AES256` is supported.
 func WithServerSideEncryptionCustomerAlgorithm(v string) Pair {
 	return Pair{
-		Key:   pairServerSideEncryptionCustomerAlgorithm,
+		Key:   "server_side_encryption_customer_algorithm",
 		Value: v,
 	}
 }
@@ -143,7 +180,7 @@ func WithServerSideEncryptionCustomerAlgorithm(v string) Pair {
 // ServerSideEncryptionCustomerKey specifies the customer-provided encryption key to encrypt/decrypt the source object. It must be a 32-byte AES-256 key.
 func WithServerSideEncryptionCustomerKey(v []byte) Pair {
 	return Pair{
-		Key:   pairServerSideEncryptionCustomerKey,
+		Key:   "server_side_encryption_customer_key",
 		Value: v,
 	}
 }
@@ -153,7 +190,7 @@ func WithServerSideEncryptionCustomerKey(v []byte) Pair {
 // ServiceFeatures set service features
 func WithServiceFeatures(v ServiceFeatures) Pair {
 	return Pair{
-		Key:   pairServiceFeatures,
+		Key:   "service_features",
 		Value: v,
 	}
 }
@@ -163,7 +200,7 @@ func WithServiceFeatures(v ServiceFeatures) Pair {
 // StorageClass
 func WithStorageClass(v string) Pair {
 	return Pair{
-		Key:   pairStorageClass,
+		Key:   "storage_class",
 		Value: v,
 	}
 }
@@ -173,24 +210,61 @@ func WithStorageClass(v string) Pair {
 // StorageFeatures set storage features
 func WithStorageFeatures(v StorageFeatures) Pair {
 	return Pair{
-		Key:   pairStorageFeatures,
+		Key:   "storage_features",
 		Value: v,
 	}
 }
 
+var pairMap = map[string]string{
+	"content_md5":                           "string",
+	"content_type":                          "string",
+	"context":                               "context.Context",
+	"continuation_token":                    "string",
+	"credential":                            "string",
+	"default_service_pairs":                 "DefaultServicePairs",
+	"default_storage_pairs":                 "DefaultStoragePairs",
+	"endpoint":                              "string",
+	"expire":                                "int",
+	"http_client_options":                   "*httpclient.Options",
+	"interceptor":                           "Interceptor",
+	"io_callback":                           "func([]byte)",
+	"list_mode":                             "ListMode",
+	"location":                              "string",
+	"multipart_id":                          "string",
+	"name":                                  "string",
+	"object_mode":                           "ObjectMode",
+	"offset":                                "int64",
+	"server_side_encryption":                "string",
+	"server_side_encryption_context":        "string",
+	"server_side_encryption_cos_kms_key_id": "string",
+	"server_side_encryption_customer_algorithm": "string",
+	"server_side_encryption_customer_key":       "[]byte",
+	"service_features":                          "ServiceFeatures",
+	"size":                                      "int64",
+	"storage_class":                             "string",
+	"storage_features":                          "StorageFeatures",
+	"work_dir":                                  "string",
+}
 var (
 	_ Servicer = &Service{}
 )
 
 type ServiceFeatures struct {
-	LooseOperationAll    bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationAll bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
 	LooseOperationCreate bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
 	LooseOperationDelete bool
-	LooseOperationGet    bool
-	LooseOperationList   bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationGet bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationList bool
 
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
 	VirtualOperationAll bool
 
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
 	VirtualPairAll bool
 }
 
@@ -228,7 +302,7 @@ func parsePairServiceNew(opts []Pair) (pairServiceNew, error) {
 			result.HasCredential = true
 			result.Credential = v.Value.(string)
 		// Optional pairs
-		case pairDefaultServicePairs:
+		case "default_service_pairs":
 			if result.HasDefaultServicePairs {
 				continue
 			}
@@ -246,7 +320,7 @@ func parsePairServiceNew(opts []Pair) (pairServiceNew, error) {
 			}
 			result.HasHTTPClientOptions = true
 			result.HTTPClientOptions = v.Value.(*httpclient.Options)
-		case pairServiceFeatures:
+		case "service_features":
 			if result.HasServiceFeatures {
 				continue
 			}
@@ -283,9 +357,6 @@ func (s *Service) parsePairServiceCreate(opts []Pair) (pairServiceCreate, error)
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		case "location":
 			if result.HasLocation {
@@ -295,18 +366,8 @@ func (s *Service) parsePairServiceCreate(opts []Pair) (pairServiceCreate, error)
 			result.Location = v.Value.(string)
 			continue
 		default:
-			isUnsupportedPair = true
+			return pairServiceCreate{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationCreate {
-			continue
-		}
-		return pairServiceCreate{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -331,9 +392,6 @@ func (s *Service) parsePairServiceDelete(opts []Pair) (pairServiceDelete, error)
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		case "location":
 			if result.HasLocation {
@@ -343,18 +401,8 @@ func (s *Service) parsePairServiceDelete(opts []Pair) (pairServiceDelete, error)
 			result.Location = v.Value.(string)
 			continue
 		default:
-			isUnsupportedPair = true
+			return pairServiceDelete{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationDelete {
-			continue
-		}
-		return pairServiceDelete{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -379,9 +427,6 @@ func (s *Service) parsePairServiceGet(opts []Pair) (pairServiceGet, error) {
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		case "location":
 			if result.HasLocation {
@@ -391,18 +436,8 @@ func (s *Service) parsePairServiceGet(opts []Pair) (pairServiceGet, error) {
 			result.Location = v.Value.(string)
 			continue
 		default:
-			isUnsupportedPair = true
+			return pairServiceGet{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationGet {
-			continue
-		}
-		return pairServiceGet{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -425,23 +460,10 @@ func (s *Service) parsePairServiceList(opts []Pair) (pairServiceList, error) {
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		default:
-			isUnsupportedPair = true
+			return pairServiceList{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationList {
-			continue
-		}
-		return pairServiceList{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -557,23 +579,45 @@ var (
 )
 
 type StorageFeatures struct {
-	LooseOperationAll               bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationAll bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
 	LooseOperationCompleteMultipart bool
-	LooseOperationCreate            bool
-	LooseOperationCreateDir         bool
-	LooseOperationCreateMultipart   bool
-	LooseOperationDelete            bool
-	LooseOperationList              bool
-	LooseOperationListMultipart     bool
-	LooseOperationMetadata          bool
-	LooseOperationRead              bool
-	LooseOperationStat              bool
-	LooseOperationWrite             bool
-	LooseOperationWriteMultipart    bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationCreate bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationCreateDir bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationCreateMultipart bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationDelete bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationList bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationListMultipart bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationMetadata bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationRead bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationStat bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationWrite bool
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
+	LooseOperationWriteMultipart bool
 
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
 	VirtualOperationAll bool
 
+	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
 	VirtualPairAll bool
+	// VirtualDir virtual_dir feature is designed for a service that doesn't have native dir support but wants to provide simulated operations.
+	//
+	// - If this feature is disabled (the default behavior), the service will behave like it doesn't have any dir support.
+	// - If this feature is enabled, the service will support simulated dir behavior in create_dir, create, list, delete, and so on.
+	//
+	// This feature was introduced in GSP-109.
+	VirtualDir bool
 }
 
 // pairStorageNew is the parsed struct
@@ -616,13 +660,13 @@ func parsePairStorageNew(opts []Pair) (pairStorageNew, error) {
 			result.HasName = true
 			result.Name = v.Value.(string)
 		// Optional pairs
-		case pairDefaultStoragePairs:
+		case "default_storage_pairs":
 			if result.HasDefaultStoragePairs {
 				continue
 			}
 			result.HasDefaultStoragePairs = true
 			result.DefaultStoragePairs = v.Value.(DefaultStoragePairs)
-		case pairStorageFeatures:
+		case "storage_features":
 			if result.HasStorageFeatures {
 				continue
 			}
@@ -674,23 +718,10 @@ func (s *Storage) parsePairStorageCompleteMultipart(opts []Pair) (pairStorageCom
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		default:
-			isUnsupportedPair = true
+			return pairStorageCompleteMultipart{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationCompleteMultipart {
-			continue
-		}
-		return pairStorageCompleteMultipart{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -714,9 +745,6 @@ func (s *Storage) parsePairStorageCreate(opts []Pair) (pairStorageCreate, error)
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		case "multipart_id":
 			if result.HasMultipartID {
@@ -733,18 +761,8 @@ func (s *Storage) parsePairStorageCreate(opts []Pair) (pairStorageCreate, error)
 			result.ObjectMode = v.Value.(ObjectMode)
 			continue
 		default:
-			isUnsupportedPair = true
+			return pairStorageCreate{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationCreate {
-			continue
-		}
-		return pairStorageCreate{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -754,19 +772,9 @@ func (s *Storage) parsePairStorageCreate(opts []Pair) (pairStorageCreate, error)
 
 // pairStorageCreateDir is the parsed struct
 type pairStorageCreateDir struct {
-	pairs                                    []Pair
-	HasServerSideEncryption                  bool
-	ServerSideEncryption                     string
-	HasServerSideEncryptionContext           bool
-	ServerSideEncryptionContext              string
-	HasServerSideEncryptionCosKmsKeyID       bool
-	ServerSideEncryptionCosKmsKeyID          string
-	HasServerSideEncryptionCustomerAlgorithm bool
-	ServerSideEncryptionCustomerAlgorithm    string
-	HasServerSideEncryptionCustomerKey       bool
-	ServerSideEncryptionCustomerKey          []byte
-	HasStorageClass                          bool
-	StorageClass                             string
+	pairs           []Pair
+	HasStorageClass bool
+	StorageClass    string
 }
 
 // parsePairStorageCreateDir will parse Pair slice into *pairStorageCreateDir
@@ -776,46 +784,8 @@ func (s *Storage) parsePairStorageCreateDir(opts []Pair) (pairStorageCreateDir, 
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
-		case pairServerSideEncryption:
-			if result.HasServerSideEncryption {
-				continue
-			}
-			result.HasServerSideEncryption = true
-			result.ServerSideEncryption = v.Value.(string)
-			continue
-		case pairServerSideEncryptionContext:
-			if result.HasServerSideEncryptionContext {
-				continue
-			}
-			result.HasServerSideEncryptionContext = true
-			result.ServerSideEncryptionContext = v.Value.(string)
-			continue
-		case pairServerSideEncryptionCosKmsKeyID:
-			if result.HasServerSideEncryptionCosKmsKeyID {
-				continue
-			}
-			result.HasServerSideEncryptionCosKmsKeyID = true
-			result.ServerSideEncryptionCosKmsKeyID = v.Value.(string)
-			continue
-		case pairServerSideEncryptionCustomerAlgorithm:
-			if result.HasServerSideEncryptionCustomerAlgorithm {
-				continue
-			}
-			result.HasServerSideEncryptionCustomerAlgorithm = true
-			result.ServerSideEncryptionCustomerAlgorithm = v.Value.(string)
-			continue
-		case pairServerSideEncryptionCustomerKey:
-			if result.HasServerSideEncryptionCustomerKey {
-				continue
-			}
-			result.HasServerSideEncryptionCustomerKey = true
-			result.ServerSideEncryptionCustomerKey = v.Value.([]byte)
-			continue
-		case pairStorageClass:
+		case "storage_class":
 			if result.HasStorageClass {
 				continue
 			}
@@ -823,18 +793,8 @@ func (s *Storage) parsePairStorageCreateDir(opts []Pair) (pairStorageCreateDir, 
 			result.StorageClass = v.Value.(string)
 			continue
 		default:
-			isUnsupportedPair = true
+			return pairStorageCreateDir{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationCreateDir {
-			continue
-		}
-		return pairStorageCreateDir{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -868,9 +828,6 @@ func (s *Storage) parsePairStorageCreateMultipart(opts []Pair) (pairStorageCreat
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		case "content_type":
 			if result.HasContentType {
@@ -879,42 +836,42 @@ func (s *Storage) parsePairStorageCreateMultipart(opts []Pair) (pairStorageCreat
 			result.HasContentType = true
 			result.ContentType = v.Value.(string)
 			continue
-		case pairServerSideEncryption:
+		case "server_side_encryption":
 			if result.HasServerSideEncryption {
 				continue
 			}
 			result.HasServerSideEncryption = true
 			result.ServerSideEncryption = v.Value.(string)
 			continue
-		case pairServerSideEncryptionContext:
+		case "server_side_encryption_context":
 			if result.HasServerSideEncryptionContext {
 				continue
 			}
 			result.HasServerSideEncryptionContext = true
 			result.ServerSideEncryptionContext = v.Value.(string)
 			continue
-		case pairServerSideEncryptionCosKmsKeyID:
+		case "server_side_encryption_cos_kms_key_id":
 			if result.HasServerSideEncryptionCosKmsKeyID {
 				continue
 			}
 			result.HasServerSideEncryptionCosKmsKeyID = true
 			result.ServerSideEncryptionCosKmsKeyID = v.Value.(string)
 			continue
-		case pairServerSideEncryptionCustomerAlgorithm:
+		case "server_side_encryption_customer_algorithm":
 			if result.HasServerSideEncryptionCustomerAlgorithm {
 				continue
 			}
 			result.HasServerSideEncryptionCustomerAlgorithm = true
 			result.ServerSideEncryptionCustomerAlgorithm = v.Value.(string)
 			continue
-		case pairServerSideEncryptionCustomerKey:
+		case "server_side_encryption_customer_key":
 			if result.HasServerSideEncryptionCustomerKey {
 				continue
 			}
 			result.HasServerSideEncryptionCustomerKey = true
 			result.ServerSideEncryptionCustomerKey = v.Value.([]byte)
 			continue
-		case pairStorageClass:
+		case "storage_class":
 			if result.HasStorageClass {
 				continue
 			}
@@ -922,18 +879,8 @@ func (s *Storage) parsePairStorageCreateMultipart(opts []Pair) (pairStorageCreat
 			result.StorageClass = v.Value.(string)
 			continue
 		default:
-			isUnsupportedPair = true
+			return pairStorageCreateMultipart{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationCreateMultipart {
-			continue
-		}
-		return pairStorageCreateMultipart{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -957,9 +904,6 @@ func (s *Storage) parsePairStorageDelete(opts []Pair) (pairStorageDelete, error)
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		case "multipart_id":
 			if result.HasMultipartID {
@@ -976,18 +920,8 @@ func (s *Storage) parsePairStorageDelete(opts []Pair) (pairStorageDelete, error)
 			result.ObjectMode = v.Value.(ObjectMode)
 			continue
 		default:
-			isUnsupportedPair = true
+			return pairStorageDelete{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationDelete {
-			continue
-		}
-		return pairStorageDelete{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -1009,9 +943,6 @@ func (s *Storage) parsePairStorageList(opts []Pair) (pairStorageList, error) {
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		case "list_mode":
 			if result.HasListMode {
@@ -1021,18 +952,8 @@ func (s *Storage) parsePairStorageList(opts []Pair) (pairStorageList, error) {
 			result.ListMode = v.Value.(ListMode)
 			continue
 		default:
-			isUnsupportedPair = true
+			return pairStorageList{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationList {
-			continue
-		}
-		return pairStorageList{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -1052,23 +973,10 @@ func (s *Storage) parsePairStorageListMultipart(opts []Pair) (pairStorageListMul
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		default:
-			isUnsupportedPair = true
+			return pairStorageListMultipart{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationListMultipart {
-			continue
-		}
-		return pairStorageListMultipart{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -1088,23 +996,10 @@ func (s *Storage) parsePairStorageMetadata(opts []Pair) (pairStorageMetadata, er
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		default:
-			isUnsupportedPair = true
+			return pairStorageMetadata{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationMetadata {
-			continue
-		}
-		return pairStorageMetadata{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -1134,9 +1029,6 @@ func (s *Storage) parsePairStorageRead(opts []Pair) (pairStorageRead, error) {
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		case "io_callback":
 			if result.HasIoCallback {
@@ -1152,14 +1044,14 @@ func (s *Storage) parsePairStorageRead(opts []Pair) (pairStorageRead, error) {
 			result.HasOffset = true
 			result.Offset = v.Value.(int64)
 			continue
-		case pairServerSideEncryptionCustomerAlgorithm:
+		case "server_side_encryption_customer_algorithm":
 			if result.HasServerSideEncryptionCustomerAlgorithm {
 				continue
 			}
 			result.HasServerSideEncryptionCustomerAlgorithm = true
 			result.ServerSideEncryptionCustomerAlgorithm = v.Value.(string)
 			continue
-		case pairServerSideEncryptionCustomerKey:
+		case "server_side_encryption_customer_key":
 			if result.HasServerSideEncryptionCustomerKey {
 				continue
 			}
@@ -1174,18 +1066,8 @@ func (s *Storage) parsePairStorageRead(opts []Pair) (pairStorageRead, error) {
 			result.Size = v.Value.(int64)
 			continue
 		default:
-			isUnsupportedPair = true
+			return pairStorageRead{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationRead {
-			continue
-		}
-		return pairStorageRead{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -1213,9 +1095,6 @@ func (s *Storage) parsePairStorageStat(opts []Pair) (pairStorageStat, error) {
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		case "multipart_id":
 			if result.HasMultipartID {
@@ -1231,14 +1110,14 @@ func (s *Storage) parsePairStorageStat(opts []Pair) (pairStorageStat, error) {
 			result.HasObjectMode = true
 			result.ObjectMode = v.Value.(ObjectMode)
 			continue
-		case pairServerSideEncryptionCustomerAlgorithm:
+		case "server_side_encryption_customer_algorithm":
 			if result.HasServerSideEncryptionCustomerAlgorithm {
 				continue
 			}
 			result.HasServerSideEncryptionCustomerAlgorithm = true
 			result.ServerSideEncryptionCustomerAlgorithm = v.Value.(string)
 			continue
-		case pairServerSideEncryptionCustomerKey:
+		case "server_side_encryption_customer_key":
 			if result.HasServerSideEncryptionCustomerKey {
 				continue
 			}
@@ -1246,18 +1125,8 @@ func (s *Storage) parsePairStorageStat(opts []Pair) (pairStorageStat, error) {
 			result.ServerSideEncryptionCustomerKey = v.Value.([]byte)
 			continue
 		default:
-			isUnsupportedPair = true
+			return pairStorageStat{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationStat {
-			continue
-		}
-		return pairStorageStat{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -1295,9 +1164,6 @@ func (s *Storage) parsePairStorageWrite(opts []Pair) (pairStorageWrite, error) {
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		case "content_md5":
 			if result.HasContentMd5 {
@@ -1320,42 +1186,42 @@ func (s *Storage) parsePairStorageWrite(opts []Pair) (pairStorageWrite, error) {
 			result.HasIoCallback = true
 			result.IoCallback = v.Value.(func([]byte))
 			continue
-		case pairServerSideEncryption:
+		case "server_side_encryption":
 			if result.HasServerSideEncryption {
 				continue
 			}
 			result.HasServerSideEncryption = true
 			result.ServerSideEncryption = v.Value.(string)
 			continue
-		case pairServerSideEncryptionContext:
+		case "server_side_encryption_context":
 			if result.HasServerSideEncryptionContext {
 				continue
 			}
 			result.HasServerSideEncryptionContext = true
 			result.ServerSideEncryptionContext = v.Value.(string)
 			continue
-		case pairServerSideEncryptionCosKmsKeyID:
+		case "server_side_encryption_cos_kms_key_id":
 			if result.HasServerSideEncryptionCosKmsKeyID {
 				continue
 			}
 			result.HasServerSideEncryptionCosKmsKeyID = true
 			result.ServerSideEncryptionCosKmsKeyID = v.Value.(string)
 			continue
-		case pairServerSideEncryptionCustomerAlgorithm:
+		case "server_side_encryption_customer_algorithm":
 			if result.HasServerSideEncryptionCustomerAlgorithm {
 				continue
 			}
 			result.HasServerSideEncryptionCustomerAlgorithm = true
 			result.ServerSideEncryptionCustomerAlgorithm = v.Value.(string)
 			continue
-		case pairServerSideEncryptionCustomerKey:
+		case "server_side_encryption_customer_key":
 			if result.HasServerSideEncryptionCustomerKey {
 				continue
 			}
 			result.HasServerSideEncryptionCustomerKey = true
 			result.ServerSideEncryptionCustomerKey = v.Value.([]byte)
 			continue
-		case pairStorageClass:
+		case "storage_class":
 			if result.HasStorageClass {
 				continue
 			}
@@ -1363,18 +1229,8 @@ func (s *Storage) parsePairStorageWrite(opts []Pair) (pairStorageWrite, error) {
 			result.StorageClass = v.Value.(string)
 			continue
 		default:
-			isUnsupportedPair = true
+			return pairStorageWrite{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationWrite {
-			continue
-		}
-		return pairStorageWrite{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -1396,9 +1252,6 @@ func (s *Storage) parsePairStorageWriteMultipart(opts []Pair) (pairStorageWriteM
 	}
 
 	for _, v := range opts {
-		// isUnsupportedPair records whether current pair is unsupported.
-		isUnsupportedPair := false
-
 		switch v.Key {
 		case "content_md5":
 			if result.HasContentMd5 {
@@ -1408,18 +1261,8 @@ func (s *Storage) parsePairStorageWriteMultipart(opts []Pair) (pairStorageWriteM
 			result.ContentMd5 = v.Value.(string)
 			continue
 		default:
-			isUnsupportedPair = true
+			return pairStorageWriteMultipart{}, services.PairUnsupportedError{Pair: v}
 		}
-
-		if !isUnsupportedPair {
-			continue
-		}
-
-		// If user enables the loose operation feature, we will ignore PairUnsupportedError.
-		if s.features.LooseOperationAll || s.features.LooseOperationWriteMultipart {
-			continue
-		}
-		return pairStorageWriteMultipart{}, services.PairUnsupportedError{Pair: v}
 	}
 
 	// Check required pairs.
@@ -1755,4 +1598,5 @@ func (s *Storage) WriteMultipartWithContext(ctx context.Context, o *Object, r io
 func init() {
 	services.RegisterServicer(Type, NewServicer)
 	services.RegisterStorager(Type, NewStorager)
+	services.RegisterSchema(Type, pairMap)
 }
