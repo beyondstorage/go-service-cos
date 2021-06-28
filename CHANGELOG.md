@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - *: Implement GSP-97, GSP-109 and GSP-117 (#32)
 
+### Upgraded
+
+- build(deps): bump github.com/tencentyun/cos-go-sdk-v5 to 0.7.27 (#34)
+
 ## [v2.0.0] - 2021-05-24
 
 ### Added
