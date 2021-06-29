@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v2.1.0] - 2021-06-29
+
+### Added
+
+- *: Implement GSP-87 Feature Gates (#27)
+- storage: Add CreateDir (#28)
+- storage: Implement GSP-97 Add Restrictions in Storage Metadata (#32)
+
+### Changed
+
+- *: Implement GSP-109 Redesign Features (#32)
+- *: Implement GSP-117 Rename Service to System as the Opposite to Global (#32)
+
+### Upgraded
+
+- build(deps): bump github.com/tencentyun/cos-go-sdk-v5 to 0.7.27 (#34)
+
 ## [v2.0.0] - 2021-05-24
 
 ### Added
@@ -45,5 +62,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Implement cos services.
 
+[v2.1.0]: https://github.com/beyondstorage/go-service-cos/compare/v2.0.0...v2.1.0
 [v2.0.0]: https://github.com/beyondstorage/go-service-cos/compare/v1.1.0...v2.0.0
 [v1.1.0]: https://github.com/beyondstorage/go-service-cos/compare/v1.0.0...v1.1.0
