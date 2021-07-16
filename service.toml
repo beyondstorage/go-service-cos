@@ -74,7 +74,7 @@ type = "string"
 description = "specifies the algorithm to use to when encrypting the object. Now only `AES256` is supported."
 
 [pairs.server_side_encryption_customer_key]
-type = "byte_array"
+type = "[]byte"
 description = "specifies the customer-provided encryption key to encrypt/decrypt the source object. It must be a 32-byte AES-256 key."
 
 [pairs.server_side_encryption_cos_kms_key_id]
