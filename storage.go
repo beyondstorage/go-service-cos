@@ -189,6 +189,12 @@ func (s *Storage) list(ctx context.Context, path string, opt pairStorageList) (o
 		prefix:  s.getAbsPath(path),
 	}
 
+	if !opt.HasListMode {
+		// Support `ListModePrefix` as the default `ListMode`.
+		// ref: [GSP-46](https://github.com/beyondstorage/go-storage/blob/master/docs/rfcs/654-unify-list-behavior.md)
+		opt.ListMode = ListModePrefix
+	}
+
 	var nextFn NextObjectFunc
 
 	switch {
