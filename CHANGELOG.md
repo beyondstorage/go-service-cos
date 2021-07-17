@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v2.2.0] - 2021-07-17
+
+### Added
+
+- ci: Add gofmt action (#37)
+- ci: Add dependabot auto build support (#40)
+- ci: Add diff check action (#41)
+
+### Changed
+
+- storage: Update types in service.toml to golang types (#46)
+- storage: Implement GSP-654 Unify List Behavior (#46)
+
+### Fixed
+
+- ci: Fix auto-build not work correctly
+
 ## [v2.1.0] - 2021-06-29
 
 ### Added
@@ -62,6 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Implement cos services.
 
+[v2.2.0]: https://github.com/beyondstorage/go-service-cos/compare/v2.1.0...v2.2.0
 [v2.1.0]: https://github.com/beyondstorage/go-service-cos/compare/v2.0.0...v2.1.0
 [v2.0.0]: https://github.com/beyondstorage/go-service-cos/compare/v1.1.0...v2.0.0
 [v1.1.0]: https://github.com/beyondstorage/go-service-cos/compare/v1.0.0...v1.1.0
