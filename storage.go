@@ -373,11 +373,7 @@ func (s *Storage) read(ctx context.Context, path string, w io.Writer, opt pairSt
 	rp := s.getAbsPath(path)
 
 	getOptions := &cos.ObjectGetOptions{}
-	rangeOptions := &cos.RangeOptions{
-		HasStart: false,
-		HasEnd:   false,
-		Start:    0,
-	}
+	rangeOptions := &cos.RangeOptions{}
 	if opt.HasOffset {
 		rangeOptions.HasStart = true
 		rangeOptions.Start = opt.Offset
