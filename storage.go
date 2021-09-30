@@ -380,7 +380,11 @@ func (s *Storage) read(ctx context.Context, path string, w io.Writer, opt pairSt
 	}
 	if opt.HasSize {
 		rangeOptions.HasEnd = true
-		rangeOptions.End = rangeOptions.Start + opt.Size - 1
+		if opt.HasOffset {
+			rangeOptions.End = rangeOptions.Start + opt.Size - 1
+		} else {
+			rangeOptions.End = opt.Size
+		}
 	}
 	getOptions.Range = cos.FormatRangeOptions(rangeOptions)
 	// SSE-C
