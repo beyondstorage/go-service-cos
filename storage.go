@@ -373,6 +373,22 @@ func (s *Storage) read(ctx context.Context, path string, w io.Writer, opt pairSt
 	rp := s.getAbsPath(path)
 
 	getOptions := &cos.ObjectGetOptions{}
+	rangeOptions := &cos.RangeOptions{}
+	if opt.HasOffset {
+		rangeOptions.HasStart = true
+		rangeOptions.Start = opt.Offset
+	}
+	if opt.HasSize {
+		rangeOptions.HasEnd = true
+		if opt.HasOffset {
+			rangeOptions.End = rangeOptions.Start + opt.Size - 1
+		} else {
+			rangeOptions.HasStart = true
+			rangeOptions.Start = 0
+			rangeOptions.End = opt.Size - 1
+		}
+	}
+	getOptions.Range = cos.FormatRangeOptions(rangeOptions)
 	// SSE-C
 	if opt.HasServerSideEncryptionCustomerAlgorithm {
 		getOptions.XCosSSECustomerAglo, getOptions.XCosSSECustomerKey, getOptions.XCosSSECustomerKeyMD5, err = calculateEncryptionHeaders(opt.ServerSideEncryptionCustomerAlgorithm, opt.ServerSideEncryptionCustomerKey)
@@ -500,10 +516,6 @@ func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int6
 		return 0, fmt.Errorf("reader is nil but size is not 0")
 	} else {
 		r = io.LimitReader(r, size)
-	}
-
-	if opt.HasIoCallback {
-		r = iowrap.CallbackReader(r, opt.IoCallback)
 	}
 
 	rp := s.getAbsPath(path)
