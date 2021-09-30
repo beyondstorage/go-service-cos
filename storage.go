@@ -373,6 +373,20 @@ func (s *Storage) read(ctx context.Context, path string, w io.Writer, opt pairSt
 	rp := s.getAbsPath(path)
 
 	getOptions := &cos.ObjectGetOptions{}
+	rangeOptions := &cos.RangeOptions{
+		HasStart: false,
+		HasEnd:   false,
+		Start:    0,
+	}
+	if opt.HasOffset {
+		rangeOptions.HasStart = true
+		rangeOptions.Start = opt.Offset
+	}
+	if opt.HasSize {
+		rangeOptions.HasEnd = true
+		rangeOptions.End = rangeOptions.Start + opt.Size - 1
+	}
+	getOptions.Range = cos.FormatRangeOptions(rangeOptions)
 	// SSE-C
 	if opt.HasServerSideEncryptionCustomerAlgorithm {
 		getOptions.XCosSSECustomerAglo, getOptions.XCosSSECustomerKey, getOptions.XCosSSECustomerKeyMD5, err = calculateEncryptionHeaders(opt.ServerSideEncryptionCustomerAlgorithm, opt.ServerSideEncryptionCustomerKey)
