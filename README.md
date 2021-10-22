@@ -1,11 +1,14 @@
-[![Build Status](https://github.com/beyondstorage/go-service-cos/workflows/Unit%20Test/badge.svg?branch=master)](https://github.com/beyondstorage/go-service-cos/actions?query=workflow%3A%22Unit+Test%22)
-[![Integration Tests](https://teamcity.beyondstorage.io/app/rest/builds/buildType:(id:Services_Cos_IntegrationTests)/statusIcon)](https://teamcity.beyondstorage.io/buildConfiguration/Services_Cos_IntegrationTests)
-[![License](https://img.shields.io/badge/license-apache%20v2-blue.svg)](https://github.com/Xuanwo/storage/blob/master/LICENSE)
-[![](https://img.shields.io/matrix/beyondstorage@go-storage:matrix.org.svg?logo=matrix)](https://matrix.to/#/#beyondstorage@go-storage:matrix.org)
-
 # go-services-cos
 
 [COS(Cloud Object Storage)](https://cloud.tencent.com/product/cos) service support for [go-storage](https://github.com/beyondstorage/go-storage).
+
+## Notes
+
+**This package has been moved to [go-storage](https://github.com/beyondstorage/go-storage/tree/master/services/cos).**
+
+```shell
+go get go.beyondstorage.io/services/cos/v3
+```
 
 ## Install
 
